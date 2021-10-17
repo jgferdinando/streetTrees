@@ -4,8 +4,8 @@ const { MapboxLayer, PointCloudLayer } = deck;
 var map = new mapboxgl.Map({
 	container: 'map',
 	style: 'mapbox://styles/jgf94/ckg7ai9oo06zj19p6zw741oe2', 
-	center: [ -73.9936646970232, 40.70723458883233 ],
-	zoom: 14,
+	center: [ -73.993, 40.707 ],
+	zoom: 10,
 	pitch: 60,
 	bearing: 0,
 	antialias: true
@@ -13,9 +13,14 @@ var map = new mapboxgl.Map({
 
 map.on('load', function() {
 	
-	map.addSource('trees', { type: 'geojson', data: './data/geojson/tree_census_geojson.geojson'});
+	map.addSource('trees', { type: 'geojson', 
+		cluster: true,
+		clusterMaxZoom: 15,
+		clusterRadius: 50,
+		data: './data/geojson/tree_census_geojson.geojson'
+		});
 
-	
+
   	map.addLayer(
 		{
 		'id': '3d-buildings',
@@ -53,10 +58,57 @@ map.on('load', function() {
 			}
 		);
 
+	map.addLayer(
+		{
+		'id': 'clusters',
+		'type': 'circle',
+		'source': 'trees',
+		'filter': ['has', 'point_count'],
+		'paint': {
+		// Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)
+		// with three steps to implement three types of circles:
+		//   * Blue, 20px circles when point count is less than 100
+		//   * Yellow, 30px circles when point count is between 100 and 750
+		//   * Pink, 40px circles when point count is greater than or equal to 750
+		'circle-pitch-alignment':'map',
+		'circle-color':'rgba(255,255,255,0)',
+		'circle-stroke-color': [
+			'interpolate',
+			['linear'],
+			['get', 'point_count'],
+			50,
+			'rgba(75,100,75,0.6)',
+			500,
+			'rgba(50,150,50,0.7)',
+			2000,
+			'rgba(0,200,0,0.8)'
+			],
+		'circle-radius': [
+			'interpolate',
+			['linear'],
+			['get', 'point_count'],
+			0,
+			5,
+			100,
+			10,
+			2000,
+			20
+			],
+		'circle-stroke-width':{
+			'base': 1,
+			'stops': [
+				[10, 2],
+				[16, 4],
+				[22, 8]
+				]}
+		}
+		});
+
 	map.addLayer({
 		'id': 'trees1',
 		'type': 'circle',
 		'source': 'trees',
+		'filter': ['!', ['has', 'point_count']],
 		'layout':{'visibility':'visible'},
 		'paint': {
 			// make circles larger as the user zooms from z12 to z22
@@ -77,9 +129,9 @@ map.on('load', function() {
 			['linear'],
 			['get', 'tree_dbh'],
 			6,
-			'rgba(150,150,50,0.4)',
+			'rgba(150,150,50,0.6)',
 			36,
-			'rgba(50,200,75,0.6)'
+			'rgba(50,200,75,0.8)'
 			],
 			'circle-stroke-width':{
 			'base': 1,
@@ -213,7 +265,6 @@ map.on('load', function() {
 		document.getElementById("trunk").innerHTML = e.features[0].properties['tree_dbh'];
 
 		var expected = ((((((((e.features[0].properties['tree_dbh'])/12)/3.28)/2)**2)*3.1415926)*28.2+7)/2)*3.28;
-
 		document.getElementById("canopy").innerHTML = expected;
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -225,7 +276,7 @@ map.on('load', function() {
 			var min = 10;
 			var count = 0;
 			for (var i = 0; i < treeTable.length; i++) { 
-				if ( treeTable[i][0] >= -expected/2 && treeTable[i][0] <= expected/2 && treeTable[i][1] >= -expected/2 && treeTable[i][1] <= expected/2 ) {
+				if ( treeTable[i][0] >= -expected/4 && treeTable[i][0] <= expected/4 && treeTable[i][1] >= -expected/4 && treeTable[i][1] <= expected/4 ) {
 					count++;
 					if ( treeTable[i][2] >= max ) {
 						max = treeTable[i][2];
@@ -328,6 +379,24 @@ map.on('load', function() {
 						[210,20,0.9,'9',true],
 						[223,13,0.8,'10',true],
 						[233,5,0.7,'11',true],
+						[243,5,0.6,'12',false],
+						[1,1,0.5,'13',false],
+						[1,1,0.4,'14',false],
+						[1,1,0,'15',false]
+					],
+
+					[
+						[1,1,0,'1',false],
+						[1,1,0.4,'2',false],
+						[128,6,0.5,'3',false],
+						[139,14,0.6,'4',false],
+						[152,20,0.7,'5',false],
+						[166,25,0.8,'6',false],
+						[181,26,0.9,'7',false],
+						[196,24,1,'8',false],
+						[210,20,0.9,'9',false],
+						[223,13,0.8,'10',false],
+						[233,5,0.7,'11',false],
 						[243,5,0.6,'12',false],
 						[1,1,0.5,'13',false],
 						[1,1,0.4,'14',false],
