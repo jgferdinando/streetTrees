@@ -3,10 +3,10 @@ const { MapboxLayer, PointCloudLayer } = deck;
 		
 var map = new mapboxgl.Map({
 	container: 'map',
-	style: 'mapbox://styles/mapbox/light-v10', 
-	center: [  -73.98356447993815, 40.684828606051845 ],
-	zoom: 16,
-	pitch: 45,
+	style: 'mapbox://styles/jgf94/ckg7ai9oo06zj19p6zw741oe2', 
+	center: [ -73.9936646970232, 40.70723458883233 ],
+	zoom: 14,
+	pitch: 60,
 	bearing: 0,
 	antialias: true
 	});
@@ -26,7 +26,7 @@ map.on('load', function() {
 		'type': 'fill-extrusion',
 		'minzoom': 15,
 		'paint': {
-			'fill-extrusion-color': 'rgba(225,220,215,1)',
+			'fill-extrusion-color': 'rgb(200,200,200)',
 			 
 			// use an 'interpolate' expression to add a smooth transition effect to the
 			// buildings as the user zooms in
@@ -48,7 +48,7 @@ map.on('load', function() {
 			15.05,
 			['get', 'min_height']
 			],
-			'fill-extrusion-opacity': 0.5
+			'fill-extrusion-opacity': 0.4
 			}
 			}
 		);
@@ -60,32 +60,35 @@ map.on('load', function() {
 		'layout':{'visibility':'visible'},
 		'paint': {
 			// make circles larger as the user zooms from z12 to z22
-			'circle-radius': {
-			'base': 1,
-			'stops': [
-				[15, 1.5],
-				[17, 3],
-				[22, 24]
-				]},
+			'circle-radius': [
+		    "interpolate",
+		    ["exponential", 2],
+		    ["zoom"],
+		    0,1,
+		    //5,['/',['get', 'tree_dbh'],20],
+		    //15, ['*',0.01,['^',['/',['get', 'tree_dbh'],2],1]],
+		    22, ['*',10,['get', 'tree_dbh']],
+			],
+
 			'circle-pitch-alignment':'map',
 			'circle-color':'rgba(255,255,255,0)',
 			'circle-stroke-color': [
 			'interpolate',
 			['linear'],
-			['get', 'zrange'],
-			0,
-			'rgba(200,100,50,0.6)',
-			65,
-			'rgba(50,200,75,0.9)'
+			['get', 'tree_dbh'],
+			6,
+			'rgba(150,150,50,0.4)',
+			36,
+			'rgba(50,200,75,0.6)'
 			],
 			'circle-stroke-width':{
 			'base': 1,
 			'stops': [
-				[15, 0.7],
-				[17, 1],
+				[10, 0.75],
+				[16, 1.5],
 				[22, 5]
-				]},
-			'circle-opacity':1
+				]}
+			//'circle-opacity':0.3
 			}
 		});
 
@@ -175,10 +178,6 @@ map.on('load', function() {
 		var pointCloudFile = pointCloudFile.concat(treeID);
 		var pointCloudFile = pointCloudFile.concat('.json');
 
-		//parse xyz json to get tree stats
-		//var treeTable = JSON.parse(pointCloudFile);
-		//console.log(treeTable)
-		
 		map.addLayer(new MapboxLayer({
 	    	id: 'tree',
 	    	type: PointCloudLayer,
@@ -212,9 +211,46 @@ map.on('load', function() {
 		document.getElementById("status").innerHTML = e.features[0].properties['status'];
 		document.getElementById("health").innerHTML = e.features[0].properties['health'];
 		document.getElementById("trunk").innerHTML = e.features[0].properties['tree_dbh'];
-		document.getElementById("canopy").innerHTML = (e.features[0].properties['canopy_radius_calc_ft']);
-		document.getElementById("height").innerHTML = e.features[0].properties['zrange'];
-		document.getElementById("density").innerHTML = e.features[0].properties['density'];
+
+		var expected = ((((((((e.features[0].properties['tree_dbh'])/12)/3.28)/2)**2)*3.1415926)*28.2+7)/2)*3.28;
+
+		document.getElementById("canopy").innerHTML = expected;
+
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+		//parse xyz json to get tree stats
+
+		jQuery.when(jQuery.getJSON(pointCloudFile)).done( function(treeTable) {
+			//console.log(treeTable);
+			var max = 0;
+			var min = 10;
+			var count = 0;
+			for (var i = 0; i < treeTable.length; i++) { 
+				if ( treeTable[i][0] >= -expected/2 && treeTable[i][0] <= expected/2 && treeTable[i][1] >= -expected/2 && treeTable[i][1] <= expected/2 ) {
+					count++;
+					if ( treeTable[i][2] >= max ) {
+						max = treeTable[i][2];
+						}
+					else {
+						continue;
+						};
+					if ( treeTable[i][2] <= min ) {
+						min = treeTable[i][2];
+						}
+					else {
+						continue;
+						};
+					}
+				else {
+					continue;
+					}; 
+				};
+			document.getElementById("height").innerHTML = (max - min)*3.28;
+			document.getElementById("density").innerHTML = (max - min)*3.28/count;
+			});		
+
+		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 		});
 
 	
