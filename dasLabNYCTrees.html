@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Cornell DAS Lab NYC Tree Dashboard</title>
+		<script src='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.js'></script>
+		<script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
+		<link href='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css' rel='stylesheet' />
+		<link rel="stylesheet" type="text/css" href="css/style.css">
+		<style>
+			body { margin: 0; padding: 0; }
+			#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+		</style>
+	</head>
+	<body>
+		<nav id="menu"></nav>
+		<div id='map'></div>
+		<div class="map-overlay">
+			<div style="float:left; padding: 15px 0; width:100%">
+				<select name="seasonPicker" id="pickedSeason" class="select-div" padding: 4px;>
+					<option value='1'>Spring</option>
+					<option value='0'>Summer</option>
+					<option value='1'>Fall</option>
+					<option value='2'>Winter</option>
+				</select>
+			</div>
+
+						<table style="width:100%;">
+							
+							<tr>
+
+								<td style="width:50%;">
+									<table>
+										<tr><td><a class="title" id="common" href="#" target="_blank">Common Name </a></td></tr>
+										<tr><td><p class="subtitle" id="latin">Latin Name </p></td></tr>
+									</table>								
+								</td>
+
+								<td style="width:25%;">
+									<table>
+										<tr><td><p class="section-name">Address </p></td><td><p class="control-name" id="address"> </p></td></tr>
+										<tr><td><p class="section-name">Zip Code </p></td><td><p class="control-name" id="zipcode"> </p></td></tr>
+										<tr><td><p class="section-name">Borough </p></td><td><p class="control-name" id="borough"> </p></td></tr>
+										<tr><td><p class="section-name">Curb Location </p></td><td><p class="control-name" id="curb"> </p></td></tr>
+										<tr><td><p class="section-name">Latitude </p></td><td><p class="control-name" id="lat"> </p></td></tr>
+										<tr><td><p class="section-name">Longitude </p></td><td><p class="control-name" id="lon"> </p></td></tr>
+									</table>
+								</td>
+
+								<td style="width:25%;">
+									<table>
+										<tr><td><p class="section-name">Status </p></td><td><p class="control-name" id="status"> </p></td></tr>
+										<tr><td><p class="section-name">Health </p></td><td><p class="control-name" id="health"> </p></td></tr>
+										<tr><td><p class="section-name">Trunk Diameter (inches) </p></td><td><p class="control-name" id="trunk"> </p></td></tr>
+										<tr><td><p class="section-name">Expected Canopy Radius (feet) </p></td><td><p class="control-name" id="canopy"> </p></td></tr>
+										<tr><td><p class="section-name">Lidar-derived Height (feet) </p></td><td><p class="control-name" id="height"> </p></td></tr>
+										<tr><td><p class="section-name">Lidar Return Density </p></td><td><p class="control-name" id="density"> </p></td></tr>
+									</table>
+								</td>
+
+							</tr>
+
+							
+
+						</table>
+
+		</div>
+
+
+		<script src="js/dasLabNYCTrees.js">
+		</script>
+	</body>
+</html>
