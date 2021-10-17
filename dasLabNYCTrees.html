@@ -5,11 +5,11 @@
 		<meta name="viewport" content="width=device-width, initial-scale=1.0">
 		<title>Cornell DAS Lab NYC Tree Dashboard</title>
 
-		<script src='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.js'></script>
+		<script src='https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.js'></script>
 		<script src="https://unpkg.com/deck.gl@^7.0.0/dist.min.js"></script>
 		<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
 
-		<link href='https://api.mapbox.com/mapbox-gl-js/v1.8.1/mapbox-gl.css' rel='stylesheet' />
+		<link href='https://api.mapbox.com/mapbox-gl-js/v2.5.1/mapbox-gl.css' rel='stylesheet' />
 		<link rel="stylesheet" type="text/css" href="css/style.css">
 		<style>
 			body { margin: 0; padding: 0; }
@@ -22,6 +22,7 @@
 		<div class="map-overlay">
 			<div style="float:left; padding: 15px 0; width:100%">
 				<select name="seasonPicker" id="pickedSeason" class="select-div" padding: 4px;>
+					<option value='3'>No Seasonal Shadow. Click to select.</option>
 					<option value='1'>Spring</option>
 					<option value='0'>Summer</option>
 					<option value='1'>Fall</option>
