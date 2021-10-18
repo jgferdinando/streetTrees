@@ -1,6 +1,8 @@
 mapboxgl.accessToken = 'pk.eyJ1IjoiamdmOTQiLCJhIjoiY2thaXk2bjQzMDZvYzJ3cXoxeThnODU5NyJ9.o1ijddB0igPdlsWMw6iRVw';
 const { MapboxLayer, PointCloudLayer } = deck;
-		
+
+
+
 var map = new mapboxgl.Map({
 	container: 'map',
 	style: 'mapbox://styles/jgf94/ckg7ai9oo06zj19p6zw741oe2', 
@@ -12,10 +14,27 @@ var map = new mapboxgl.Map({
 	});
 
 map.on('load', function() {
+
+	// Get the modal
+	var modal = document.getElementById("myModal");
+	// Get the <span> element that closes the modal
+	var span = document.getElementById("close");
+	// When the user clicks on <span> (x), close the modal
+	span.onclick = function() {
+	  modal.style.display = "none";
+	};
+	// When the user clicks anywhere outside of the modal, close it
+	window.onclick = function(event) {
+	  if (event.target == modal) {
+	    modal.style.display = "none";
+	  }
+	};
+
+	modal.style.display = "block";
 	
 	map.addSource('trees', { type: 'geojson', 
 		cluster: true,
-		clusterMaxZoom: 15,
+		clusterMaxZoom: 14,
 		clusterRadius: 50,
 		data: './data/geojson/tree_census_geojson.geojson'
 		});
@@ -71,18 +90,7 @@ map.on('load', function() {
 		//   * Yellow, 30px circles when point count is between 100 and 750
 		//   * Pink, 40px circles when point count is greater than or equal to 750
 		'circle-pitch-alignment':'map',
-		'circle-color':'rgba(255,255,255,0)',
-		'circle-stroke-color': [
-			'interpolate',
-			['linear'],
-			['get', 'point_count'],
-			50,
-			'rgba(75,100,75,0.6)',
-			500,
-			'rgba(50,150,50,0.7)',
-			2000,
-			'rgba(0,200,0,0.8)'
-			],
+		'circle-color':'rgba(50,150,50,0.5)',
 		'circle-radius': [
 			'interpolate',
 			['linear'],
@@ -97,9 +105,9 @@ map.on('load', function() {
 		'circle-stroke-width':{
 			'base': 1,
 			'stops': [
-				[10, 2],
-				[16, 4],
-				[22, 8]
+				[10, 0],
+				[16, 0],
+				[22, 0]
 				]}
 		}
 		});
