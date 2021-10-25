@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+
+	<head>
+
+		<meta charset="UTF-8">
+		<meta name="viewport" content="width=device-width, initial-scale=1.0">
+		<title>Cornell DAS Lab NYC Tree Folio</title>
+
+		<script src="https://code.jquery.com/jquery-3.5.1.js"></script>
+		<script src="https://d3js.org/d3.v4.js"></script>
+
+		<style>
+			td {
+			font: 12px/12px 'Helvetica Neue', Helvetica, Arial, sans-serif; 
+			font-weight: 400; 
+			padding: 2px 6px 2px 6px; 
+			overflow: hidden;
+			}
+			table {
+			display: inline-block;
+			}
+		</style>
+
+	</head>
+
+	<body>
+		
+		<div id="my_dataviz"></div>
+
+
+		<script>
+			const queryString = window.location.href;
+			var url = new URL(queryString);
+			var zip = url.searchParams.get("zipcode");
+			var sp = url.searchParams.get("species");
+			console.log(zip);
+			console.log(sp);
+
+			//UPDATE THIS BEFORE UPLOAD TO SERVER///////////////////////////////////////////////////////////
+			var csvpath = './data/folio/'.concat(zip,'/',sp,'/trees.json');
+			
+			jQuery.when(jQuery.getJSON(csvpath)).done( function(trees) {
+
+				//loop through csv
+				var treeArray = [];
+				for (const tree in trees) {
+					treeArray.push(trees[tree]);
+					};
+
+				for (const tree in treeArray.slice(0,100)) {
+					//console.log(treeArray[tree]);
+					const tree_data = treeArray[tree];
+					const tree_id = tree_data.tree_id;
+					const tree_dbh = tree_data.tree_dbh; 
+					const curb_loc = tree_data.curb_loc; 
+					const status = tree_data.status; 
+					const health = tree_data.health; 
+					const spc_latin = tree_data.spc_latin; 
+					const spc_common = tree_data.spc_common; 
+					const sidewalk = tree_data.sidewalk; 
+					const address = tree_data.address; 
+					const zipcode = tree_data.zipcode; 
+					const boroname = tree_data.boroname; 
+					const nta_name = tree_data.nta_name; 
+					const latitude = tree_data.Latitude; 
+					const longitude = tree_data.longitude; 
+
+					//grab point cloud json and make D3 scatter plot
+					var pointCloudFile = 'http://localhost:8888/data/csv_out_deck/';
+					var pointCloudFile = pointCloudFile.concat(tree_id);
+					var pointCloudFile = pointCloudFile.concat('.json');
+					
+					jQuery.when(jQuery.getJSON(pointCloudFile)).done( function(treeTable) {
+
+						const body = document.body;
+
+						var width = (window.innerWidth)/6;
+						var height = width;
+						var scalar = 25;
+
+						const tbl = document.createElement('table');
+						tbl.setAttribute("style", "width:".concat(width,";"));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right; padding: 2px 2px 2px ".concat(width,"px;"));
+						td.appendChild(document.createTextNode('Address: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(address));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Neighborhood: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(nta_name));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Boro: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(boroname));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Tree ID: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(tree_id));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Diameter (ft): '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(tree_dbh));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Status: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(status));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Health: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(health));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Curb Location: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(curb_loc));
+
+						var tr = tbl.insertRow();
+						var td = tr.insertCell();
+						td.setAttribute("style" , "font-weight: 600; text-align: right;");
+						td.appendChild(document.createTextNode('Sidewalk Condition: '));
+						var td = tr.insertCell();
+						td.appendChild(document.createTextNode(sidewalk));
+
+						body.appendChild(tbl);
+
+
+						const divid1 = "plotholder1_".concat(tree_id.toString());
+						var element = document.createElement('div');
+						element.setAttribute("id" , divid1);
+						element.setAttribute("width" , width);
+						element.setAttribute("height" , height);
+						element.setAttribute("style" , "display: inline-block;");
+						body.append(element);
+						d3.select( "#".concat(divid1))
+								.append('svg')
+								.attr("width", width)
+								.attr("height" , height)
+								.attr("style" , "background: white;")
+								.append("g")
+								.selectAll("circle")
+							    .data(treeTable)
+							    .enter()
+							    .append("circle")
+								.attr("cx", function (d) { return (width/scalar)*d[0]/3.28+(width/2) } )
+								.attr("cy", function (d) { return -(width/scalar)*d[2]+(height/1) } )
+								.attr("r", function (d) { return (d[5]-d[4]+3)/2 } ) 
+								.attr("stoke","rgba(0,0,0,0)")
+								.attr("fill", function (d) { 
+									var color = "rgba(".concat(
+										d[3]*100,
+										",",
+										(d[3]*100+(d[5]-d[4])*100),
+										",",
+										d[3]*100,
+										",",
+										(d[5]-d[4]+1)/10,
+										")");
+									//console.log(color);
+									return color;
+								 	} );
+
+						const divid2 = "plotholder2_".concat(tree_id.toString());
+						var element = document.createElement('div');
+						element.setAttribute("id" , divid2);
+						element.setAttribute("width" , width);
+						element.setAttribute("height" , height);
+						element.setAttribute("style" , "display: inline-block;");
+						body.append(element);
+						d3.select( "#".concat(divid1))
+								.append('svg')
+								.attr("width", width)
+								.attr("height" , height)
+								.attr("style" , "background: white;")
+								.append("g")
+								.selectAll("circle")
+							    .data(treeTable)
+							    .enter()
+							    .append("circle")
+								.attr("cx", function (d) { return (width/scalar)*d[1]/3.28+(width/2) } )
+								.attr("cy", function (d) { return -(width/scalar)*d[2]+(height/1) } )
+								.attr("r", function (d) { return (d[5]-d[4]+3)/2 } )
+								.attr("stoke","rgba(0,0,0,0)")
+								.attr("fill", function (d) { 
+									var color = "rgba(".concat(
+										d[3]*100,
+										",",
+										(d[3]*100+(d[5]-d[4])*100),
+										",",
+										d[3]*100,
+										",",
+										(d[5]-d[4]+1)/10,
+										")");
+									//console.log(color);
+									return color;
+								 	} );
+
+						const divid3 = "plotholder2_".concat(tree_id.toString());
+						var element = document.createElement('div');
+						element.setAttribute("id" , divid3);
+						element.setAttribute("width" , width);
+						element.setAttribute("height" , height);
+						element.setAttribute("style" , "display: inline-block;");
+						body.append(element);
+						d3.select( "#".concat(divid1))
+								.append('svg')
+								.attr("width", width)
+								.attr("height" , height)
+								.attr("style" , "background: white;")
+								.append("g")
+								.selectAll("circle")
+							    .data(treeTable)
+							    .enter()
+							    .append("circle")
+								.attr("cx", function (d) { return (width/scalar)*d[0]/3.28+(width/2) } )
+								.attr("cy", function (d) { return (width/scalar)*d[1]/3.28+(width/2) } )
+								.attr("r", function (d) { return (d[5]-d[4]+3)/2 } )
+								.attr("stoke","rgba(0,0,0,0)")
+								.attr("fill", function (d) { 
+									var color = "rgba(".concat(
+										d[3]*100,
+										",",
+										(d[3]*100+(d[5]-d[4])*100),
+										",",
+										d[3]*100,
+										",",
+										(d[5]-d[4]+1)/10,
+										")");
+									//console.log(color);
+									return color;
+								 	} );
+
+						body.append(document.createElement('br'));
+
+						});
+        				
+					}; //close for loop
+
+				});
+
+		</script>
+	</body>
+</html>
