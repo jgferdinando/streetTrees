@@ -48,7 +48,7 @@
 					treeArray.push(trees[tree]);
 					};
 
-				for (const tree in treeArray.slice(0,100)) {
+				for (const tree in treeArray.slice(0,50)) {
 					//console.log(treeArray[tree]);
 					const tree_data = treeArray[tree];
 					const tree_id = tree_data.tree_id;
@@ -84,7 +84,7 @@
 
 						var tr = tbl.insertRow();
 						var td = tr.insertCell();
-						td.setAttribute("style" , "font-weight: 600; text-align: right; padding: 2px 2px 2px ".concat(width,"px;"));
+						td.setAttribute("style" , "font-weight: 600; text-align: right; padding: 2px 2px 2px ".concat(width/1.5,"px;"));
 						td.appendChild(document.createTextNode('Address: '));
 						var td = tr.insertCell();
 						td.appendChild(document.createTextNode(address));
@@ -143,6 +143,7 @@
 						td.setAttribute("style" , "font-weight: 600; text-align: right;");
 						td.appendChild(document.createTextNode('Sidewalk Condition: '));
 						var td = tr.insertCell();
+						td.setAttribute("style" , "padding: 2px ".concat(width/1.5,"px 2px 2px;"));
 						td.appendChild(document.createTextNode(sidewalk));
 
 						body.appendChild(tbl);
