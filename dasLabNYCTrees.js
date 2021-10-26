@@ -166,11 +166,17 @@ map.on('load', function() {
 	var treeLat;
 	var treeLon;
 
-	function shadow(treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
+	function shadow(zipcode,species,treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
 
-		var pointCloudFile = 'data/csv_out_deck/';
+
+		var pointCloudFile = 'data/folio/';
+		var pointCloudFile = pointCloudFile.concat(zipcode);
+		var pointCloudFile = pointCloudFile.concat('/');
+		var pointCloudFile = pointCloudFile.concat(species);
+		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(treeID);
 		var pointCloudFile = pointCloudFile.concat('.json');
+
 		var shadow = 'shadow'.concat(treeID);
 
 		var az = parseInt(az);
@@ -234,7 +240,17 @@ map.on('load', function() {
 		treeLon = parseFloat(treeLon);
 		//console.log(treeLon);
 
-		var pointCloudFile = 'data/csv_out_deck/';
+		var zipcode = e.features[0].properties['zipcode'];
+		document.getElementById("zipcode").innerHTML = zipcode;
+		var species = e.features[0].properties['spc_common'];
+		document.getElementById("common").innerHTML = species;
+
+		// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
+		var pointCloudFile = 'data/folio/';
+		var pointCloudFile = pointCloudFile.concat(zipcode);
+		var pointCloudFile = pointCloudFile.concat('/');
+		var pointCloudFile = pointCloudFile.concat(species);
+		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(treeID);
 		var pointCloudFile = pointCloudFile.concat('.json');
 
@@ -254,14 +270,9 @@ map.on('load', function() {
 
 		var hours = positions[parseInt(document.getElementById('pickedSeason').value)];
 		for (let hour of hours) {
-			shadow(treeID,treeLat,treeLon,hour[0],hour[1],hour[2],hour[3],hour[4]);
+			shadow(zipcode,species,treeID,treeLat,treeLon,hour[0],hour[1],hour[2],hour[3],hour[4]);
 			};
 		
-		var species = e.features[0].properties['spc_common'];
-		document.getElementById("common").innerHTML = species;
-		var zipcode = e.features[0].properties['zipcode'];
-		document.getElementById("zipcode").innerHTML = zipcode;
-
 		var link =  'http://localhost:8888/folio.html?zipcode='.concat(zipcode,'&species=',species);
 
 		document.getElementById("common").setAttribute("href", link);  
@@ -334,9 +345,12 @@ map.on('load', function() {
 		map.removeLayer('shadow15');
 		//map.removeLayer('shadowundefined');
 
+		var zipcode = document.getElementById("zipcode").innerHTML;
+		var species = document.getElementById("common").innerHTML;
+
 		var hours = positions[parseInt(document.getElementById('pickedSeason').value)];
 		for (let hour of hours) {
-			shadow(treeID,treeLat,treeLon,hour[0],hour[1],hour[2],hour[3],hour[4]);
+			shadow(zipcode,species,treeID,treeLat,treeLon,hour[0],hour[1],hour[2],hour[3],hour[4]);
 			};
 		});
 
