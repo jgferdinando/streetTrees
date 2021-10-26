@@ -34,8 +34,8 @@ map.on('load', function() {
 	
 	map.addSource('trees', { type: 'geojson', 
 		cluster: true,
-		clusterMaxZoom: 14,
-		clusterRadius: 50,
+		clusterMaxZoom: 15,
+		clusterRadius: 75,
 		data: './data/geojson/tree_census_geojson.geojson'
 		});
 
@@ -90,10 +90,10 @@ map.on('load', function() {
 		//   * Yellow, 30px circles when point count is between 100 and 750
 		//   * Pink, 40px circles when point count is greater than or equal to 750
 		'circle-pitch-alignment':'map',
-		'circle-color':'rgba(50,150,50,0.5)',
+		'circle-color':'rgba(50,100,50,0.5)',
 		'circle-radius': [
 			'interpolate',
-			['linear'],
+			['exponential',3],
 			['get', 'point_count'],
 			0,
 			5,
@@ -259,11 +259,14 @@ map.on('load', function() {
 		
 		var species = e.features[0].properties['spc_common'];
 		document.getElementById("common").innerHTML = species;
-		var link =  'https://www.designacrossscales.org/public_test/html/'.concat(species,'.html');
+		var zipcode = e.features[0].properties['zipcode'];
+		document.getElementById("zipcode").innerHTML = zipcode;
+
+		var link =  'http://localhost:8888/folio.html?zipcode='.concat(zipcode,'&species=',species);
+
 		document.getElementById("common").setAttribute("href", link);  
 		document.getElementById("latin").innerHTML = e.features[0].properties['spc_latin'];
 		document.getElementById("address").innerHTML = e.features[0].properties['address'];
-		document.getElementById("zipcode").innerHTML = e.features[0].properties['zipcode'];
 		document.getElementById("borough").innerHTML = e.features[0].properties['boroname'];
 		document.getElementById("curb").innerHTML = e.features[0].properties['curb_loc'];
 		document.getElementById("lat").innerHTML = e.features[0].properties['Latitude'];
