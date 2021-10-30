@@ -37,7 +37,7 @@
 			console.log(zip);
 			console.log(sp);
 
-			//UPDATE THIS BEFORE UPLOAD TO SERVER///////////////////////////////////////////////////////////
+			// TREE LIST JSONS GO HERE ///////////////////////////////////////////////////////////
 			var csvpath = './data/folio/'.concat(zip,'/',sp,'/trees.json');
 			
 			jQuery.when(jQuery.getJSON(csvpath)).done( function(trees) {
@@ -67,7 +67,14 @@
 					const longitude = tree_data.longitude; 
 
 					//grab point cloud json and make D3 scatter plot
-					var pointCloudFile = 'http://localhost:8888/data/csv_out_deck/';
+
+					// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
+
+					var pointCloudFile = './data/folio/';
+					var pointCloudFile = pointCloudFile.concat(zipcode);
+					var pointCloudFile = pointCloudFile.concat('/');
+					var pointCloudFile = pointCloudFile.concat(spc_common);
+					var pointCloudFile = pointCloudFile.concat('/');
 					var pointCloudFile = pointCloudFile.concat(tree_id);
 					var pointCloudFile = pointCloudFile.concat('.json');
 					
@@ -113,7 +120,7 @@
 						var tr = tbl.insertRow();
 						var td = tr.insertCell();
 						td.setAttribute("style" , "font-weight: 600; text-align: right;");
-						td.appendChild(document.createTextNode('Diameter (ft): '));
+						td.appendChild(document.createTextNode('Trunk Diameter (in): '));
 						var td = tr.insertCell();
 						td.appendChild(document.createTextNode(tree_dbh));
 
