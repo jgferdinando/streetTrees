@@ -169,7 +169,7 @@ map.on('load', function() {
 	function shadow(zipcode,species,treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
 
 
-		var pointCloudFile = 'data/folio/';
+		var pointCloudFile = './data/folio/';
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(species);
@@ -228,17 +228,13 @@ map.on('load', function() {
 		map.removeLayer('shadow15');
 
 		treeID = e.features[0].properties['tree_id'];
-		treeLat = e.features[0].properties['the_geom'];
-		treeLat = treeLat.split(' ')[1];
-		treeLat = treeLat.split('(')[1];
+
+		treeLat = e.features[0].properties['Latitude'];
 		treeLat = parseFloat(treeLat);
-		//console.log(treeLat);
-		
-		treeLon = e.features[0].properties['the_geom'];
-		treeLon = treeLon.split(' ')[2];
-		treeLon = treeLon.split(')')[0];
+		document.getElementById("lat").innerHTML = treeLat;
+		treeLon = e.features[0].properties['longitude'];
 		treeLon = parseFloat(treeLon);
-		//console.log(treeLon);
+		document.getElementById("lon").innerHTML = treeLon;
 
 		var zipcode = e.features[0].properties['zipcode'];
 		document.getElementById("zipcode").innerHTML = zipcode;
@@ -246,7 +242,7 @@ map.on('load', function() {
 		document.getElementById("common").innerHTML = species;
 
 		// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
-		var pointCloudFile = 'data/folio/';
+		var pointCloudFile = './data/folio/';
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(species);
@@ -259,7 +255,7 @@ map.on('load', function() {
 	    	type: PointCloudLayer,
 	    	data: pointCloudFile,
 	    	coordinateSystem: COORDINATE_SYSTEM.METER_OFFSETS,
-    		coordinateOrigin: [treeLat, treeLon],
+    		coordinateOrigin: [treeLon,treeLat],
 	    	getPosition: d => [d[0]/3.28, d[1]/3.28, (d[2])],
 	    	getColor: d => [ d[3]*255, (d[3]*125+(d[3]*225*(d[5]-d[4]+1))), d[3]*255, 100*(d[5]-d[4])+100 ],
 	    	sizeUnits: 'feet',
@@ -280,8 +276,6 @@ map.on('load', function() {
 		document.getElementById("address").innerHTML = e.features[0].properties['address'];
 		document.getElementById("borough").innerHTML = e.features[0].properties['boroname'];
 		document.getElementById("curb").innerHTML = e.features[0].properties['curb_loc'];
-		document.getElementById("lat").innerHTML = e.features[0].properties['Latitude'];
-		document.getElementById("lon").innerHTML = e.features[0].properties['longitude'];
 		document.getElementById("status").innerHTML = e.features[0].properties['status'];
 		document.getElementById("health").innerHTML = e.features[0].properties['health'];
 		document.getElementById("trunk").innerHTML = e.features[0].properties['tree_dbh'];
