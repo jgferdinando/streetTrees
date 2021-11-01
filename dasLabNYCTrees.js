@@ -169,7 +169,9 @@ map.on('load', function() {
 	function shadow(zipcode,species,treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
 
 
-		var pointCloudFile = './data/folio/';
+		var pointCloudFile = 'https://urbantechhub.s3.amazonaws.com/folio/';
+		var pointCloudFile = pointCloudFile.concat(zipcode);
+		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(species);
@@ -196,7 +198,7 @@ map.on('load', function() {
 	    	type: PointCloudLayer,
 	    	data: pointCloudFile,
 	    	coordinateSystem: COORDINATE_SYSTEM.METER_OFFSETS,
-    		coordinateOrigin: [treeLat, treeLon],
+    		coordinateOrigin: [treeLon, treeLat],
 	    	getPosition: d => [ d[0]/3.28 + (d[2]/tanAmp*(sinAz)), d[1]/3.28 + (d[2]/tanAmp*(cosAz)), 0.1 ], //for Z position d[2]*0
 	    	getColor: d => [ 255-100*(darkness*darkness)*(d[5]-d[4]), 255-100*(darkness*darkness)*(d[5]-d[4]), 255-100*(darkness*darkness)*(d[5]-d[4]), 150*(darkness*darkness)*(d[5]-d[4]) ],
 	    	sizeUnits: 'feet',
@@ -242,7 +244,9 @@ map.on('load', function() {
 		document.getElementById("common").innerHTML = species;
 
 		// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
-		var pointCloudFile = './data/folio/';
+		var pointCloudFile = 'https://urbantechhub.s3.amazonaws.com/folio/';
+		var pointCloudFile = pointCloudFile.concat(zipcode);
+		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(species);
@@ -269,7 +273,7 @@ map.on('load', function() {
 			shadow(zipcode,species,treeID,treeLat,treeLon,hour[0],hour[1],hour[2],hour[3],hour[4]);
 			};
 		
-		var link =  'http://localhost:8888/folio.html?zipcode='.concat(zipcode,'&species=',species);
+		var link =  'https://designacrossscales.org/public_test/html/folio.html?zipcode='.concat(zipcode,'&species=',species);
 
 		document.getElementById("common").setAttribute("href", link);  
 		document.getElementById("latin").innerHTML = e.features[0].properties['spc_latin'];
