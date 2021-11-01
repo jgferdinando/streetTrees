@@ -38,7 +38,7 @@
 			console.log(sp);
 
 			// TREE LIST JSONS GO HERE ///////////////////////////////////////////////////////////
-			var csvpath = './data/folio/'.concat(zip,'/',sp,'/trees.json');
+			var csvpath = 'https://urbantechhub.s3.amazonaws.com/folio/'.concat(zip,'/',zip,'/',sp,'/trees.json');
 			
 			jQuery.when(jQuery.getJSON(csvpath)).done( function(trees) {
 
@@ -70,7 +70,9 @@
 
 					// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
 
-					var pointCloudFile = './data/folio/';
+					var pointCloudFile = 'https://urbantechhub.s3.amazonaws.com/folio/';
+					var pointCloudFile = pointCloudFile.concat(zipcode);
+					var pointCloudFile = pointCloudFile.concat('/');
 					var pointCloudFile = pointCloudFile.concat(zipcode);
 					var pointCloudFile = pointCloudFile.concat('/');
 					var pointCloudFile = pointCloudFile.concat(spc_common);
