@@ -20,6 +20,16 @@
 			table {
 			display: inline-block;
 			}
+			.title{
+				font: 64px/64px 'Helvetica Neue', Arial, Helvetica, sans-serif; 
+				font-weight: 550; 
+				float:left; 
+				margin-top: 8px;
+				margin-bottom:0px;
+				padding-left: 8px;
+				padding-bottom:8px;
+				color:  #b9bfb7;
+			}
 		</style>
 
 	</head>
@@ -48,11 +58,9 @@
 				tbl1.setAttribute("style", "width:".concat("100%",";"));
 				var tr = tbl1.insertRow();
 				var td = tr.insertCell();
+				td.setAttribute("class" , "title");
 				var title = zip.concat(" - ",sp);
-				var element = document.createElement('div');
-				element.setAttribute("class" , "title");
-				element.appendChild(document.createTextNode(title));
-				td.appendChild(element);
+				td.appendChild(document.createTextNode(title));
 				body.appendChild(tbl1);
 
 
@@ -197,13 +205,13 @@
 								.attr("stoke","rgba(0,0,0,0)")
 								.attr("fill", function (d) { 
 									var color = "rgba(".concat(
-										d[3]*100,
+										d[3]*75,
 										",",
-										(d[3]*100+(d[5]-d[4])*100),
+										(d[3]*75+(d[5]-d[4])*75),
 										",",
-										d[3]*100,
+										d[3]*75,
 										",",
-										(d[5]-d[4]+1)/10,
+										(d[5]-d[4]+1)/10+0.1,
 										")");
 									//console.log(color);
 									return color;
@@ -232,19 +240,19 @@
 								.attr("stoke","rgba(0,0,0,0)")
 								.attr("fill", function (d) { 
 									var color = "rgba(".concat(
-										d[3]*100,
+										d[3]*75,
 										",",
-										(d[3]*100+(d[5]-d[4])*100),
+										(d[3]*75+(d[5]-d[4])*75),
 										",",
-										d[3]*100,
+										d[3]*75,
 										",",
-										(d[5]-d[4]+1)/10,
+										(d[5]-d[4]+1)/10+0.1,
 										")");
 									//console.log(color);
 									return color;
 								 	} );
 
-						const divid3 = "plotholder2_".concat(tree_id.toString());
+						const divid3 = "plotholder3_".concat(tree_id.toString());
 						var element = document.createElement('div');
 						element.setAttribute("id" , divid3);
 						element.setAttribute("width" , width);
@@ -267,13 +275,13 @@
 								.attr("stoke","rgba(0,0,0,0)")
 								.attr("fill", function (d) { 
 									var color = "rgba(".concat(
-										d[3]*100,
+										d[3]*75,
 										",",
-										(d[3]*100+(d[5]-d[4])*100),
+										(d[3]*75+(d[5]-d[4])*75),
 										",",
-										d[3]*100,
+										d[3]*75,
 										",",
-										(d[5]-d[4]+1)/10,
+										(d[5]-d[4]+1)/10+0.1,
 										")");
 									//console.log(color);
 									return color;
