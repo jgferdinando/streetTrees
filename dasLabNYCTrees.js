@@ -169,7 +169,7 @@ map.on('load', function() {
 	function shadow(zipcode,species,treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
 
 
-		var pointCloudFile = 'https://urbantechhub.s3.amazonaws.com/folio/';
+		var pointCloudFile = ' https://tree-folio.s3.amazonaws.com/folio/folio/';
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(zipcode);
@@ -244,7 +244,7 @@ map.on('load', function() {
 		document.getElementById("common").innerHTML = species;
 
 		// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
-		var pointCloudFile = 'https://urbantechhub.s3.amazonaws.com/folio/';
+		var pointCloudFile = ' https://tree-folio.s3.amazonaws.com/folio/folio/';
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(zipcode);
