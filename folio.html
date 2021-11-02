@@ -31,16 +31,31 @@
 
 		<script>
 			const queryString = window.location.href;
-			var url = new URL(queryString);
-			var zip = url.searchParams.get("zipcode");
-			var sp = url.searchParams.get("species");
+			const url = new URL(queryString);
+			const zip = url.searchParams.get("zipcode");
+			const sp = url.searchParams.get("species");
 			console.log(zip);
 			console.log(sp);
 
 			// TREE LIST JSONS GO HERE ///////////////////////////////////////////////////////////
-			var csvpath = 'https://urbantechhub.s3.amazonaws.com/folio/'.concat(zip,'/',zip,'/',sp,'/trees.json');
+			var csvpath = ' https://tree-folio.s3.amazonaws.com/folio/folio/'.concat(zip,'/',zip,'/',sp,'/trees.json');
 			
 			jQuery.when(jQuery.getJSON(csvpath)).done( function(trees) {
+
+
+				const body = document.body;
+				const tbl1 = document.createElement('table');
+				tbl1.setAttribute("style", "width:".concat("100%",";"));
+				var tr = tbl1.insertRow();
+				var td = tr.insertCell();
+				var title = zip.concat(" - ",sp);
+				var element = document.createElement('div');
+				element.setAttribute("class" , "title");
+				element.appendChild(document.createTextNode(title));
+				td.appendChild(element);
+				body.appendChild(tbl1);
+
+
 
 				//loop through csv
 				var treeArray = [];
@@ -70,7 +85,7 @@
 
 					// POINT CLOUD FILE PATH GOES HERE ///////////////////////////////////////////////////////////////////////////////////////
 
-					var pointCloudFile = 'https://urbantechhub.s3.amazonaws.com/folio/';
+					var pointCloudFile = ' https://tree-folio.s3.amazonaws.com/folio/folio/';
 					var pointCloudFile = pointCloudFile.concat(zipcode);
 					var pointCloudFile = pointCloudFile.concat('/');
 					var pointCloudFile = pointCloudFile.concat(zipcode);
@@ -82,11 +97,12 @@
 					
 					jQuery.when(jQuery.getJSON(pointCloudFile)).done( function(treeTable) {
 
-						const body = document.body;
+						
 
 						var width = (window.innerWidth)/6;
 						var height = width;
 						var scalar = 25;
+
 
 						const tbl = document.createElement('table');
 						tbl.setAttribute("style", "width:".concat(width,";"));
