@@ -32,11 +32,39 @@ map.on('load', function() {
 
 	modal.style.display = "block";
 	
-	map.addSource('trees', { type: 'geojson', 
+	map.addSource('treesBronx', { type: 'geojson', 
 		cluster: true,
 		clusterMaxZoom: 15,
 		clusterRadius: 75,
-		data: './data/geojson/tree_census_geojson.geojson'
+		data: './data/geojson/bronx.geojson'
+		});
+
+	map.addSource('treesBrooklyn', { type: 'geojson', 
+		cluster: true,
+		clusterMaxZoom: 15,
+		clusterRadius: 75,
+		data: './data/geojson/brooklyn.geojson'
+		});
+
+	map.addSource('treesManhattan', { type: 'geojson', 
+		cluster: true,
+		clusterMaxZoom: 15,
+		clusterRadius: 75,
+		data: './data/geojson/manhattan.geojson'
+		});
+
+	map.addSource('treesQueens', { type: 'geojson', 
+		cluster: true,
+		clusterMaxZoom: 15,
+		clusterRadius: 75,
+		data: './data/geojson/queens.geojson'
+		});
+
+	map.addSource('treesStaten', { type: 'geojson', 
+		cluster: true,
+		clusterMaxZoom: 15,
+		clusterRadius: 75,
+		data: './data/geojson/staten.geojson'
 		});
 
 
@@ -51,9 +79,6 @@ map.on('load', function() {
 		'minzoom': 15,
 		'paint': {
 			'fill-extrusion-color': 'rgb(200,200,200)',
-			 
-			// use an 'interpolate' expression to add a smooth transition effect to the
-			// buildings as the user zooms in
 			'fill-extrusion-height': [
 			'interpolate',
 			['linear'],
@@ -77,97 +102,133 @@ map.on('load', function() {
 			}
 		);
 
-	map.addLayer(
-		{
-		'id': 'clusters',
-		'type': 'circle',
-		'source': 'trees',
-		'filter': ['has', 'point_count'],
-		'paint': {
-		// Use step expressions (https://docs.mapbox.com/mapbox-gl-js/style-spec/#expressions-step)
-		// with three steps to implement three types of circles:
-		//   * Blue, 20px circles when point count is less than 100
-		//   * Yellow, 30px circles when point count is between 100 and 750
-		//   * Pink, 40px circles when point count is greater than or equal to 750
-		'circle-pitch-alignment':'map',
-		'circle-color':'rgba(50,100,50,0.5)',
-		'circle-radius': [
-			'interpolate',
-			['exponential',3],
-			['get', 'point_count'],
-			0,
-			5,
-			100,
-			10,
-			2000,
-			20
-			],
-		'circle-stroke-width':{
-			'base': 1,
-			'stops': [
-				[10, 0],
-				[16, 0],
-				[22, 0]
-				]}
-		}
-		});
-
-	map.addLayer({
-		'id': 'trees1',
-		'type': 'circle',
-		'source': 'trees',
-		'filter': ['!', ['has', 'point_count']],
-		'layout':{'visibility':'visible'},
-		'paint': {
-			// make circles larger as the user zooms from z12 to z22
-			'circle-radius': [
-		    "interpolate",
-		    ["exponential", 2],
-		    ["zoom"],
-		    0,1,
-		    //5,['/',['get', 'tree_dbh'],20],
-		    //15, ['*',0.01,['^',['/',['get', 'tree_dbh'],2],1]],
-		    22, ['*',10,['get', 'tree_dbh']],
-			],
-
+  	function treeCluster(treeSource,layerid) {
+		map.addLayer(
+			{
+			'id': layerid,
+			'type': 'circle',
+			'source': treeSource,
+			'filter': ['has', 'point_count'],
+			'paint': {
 			'circle-pitch-alignment':'map',
-			'circle-color':'rgba(255,255,255,0)',
-			'circle-stroke-color': [
-			'interpolate',
-			['linear'],
-			['get', 'tree_dbh'],
-			6,
-			'rgba(150,150,50,0.6)',
-			36,
-			'rgba(50,200,75,0.8)'
-			],
+			'circle-color':'rgba(50,100,50,0.5)',
+			'circle-radius': [
+				'interpolate',
+				['exponential',3],
+				['get', 'point_count'],
+				0,
+				5,
+				100,
+				10,
+				2000,
+				20
+				],
 			'circle-stroke-width':{
-			'base': 1,
-			'stops': [
-				[10, 0.75],
-				[16, 1.5],
-				[22, 5]
-				]}
-			//'circle-opacity':0.3
+				'base': 1,
+				'stops': [
+					[10, 0],
+					[16, 0],
+					[22, 0]
+					]}
 			}
-		});
+			});
+		};
+
+	treeCluster('treesBronx','bronxClusters');
+	treeCluster('treesBrooklyn','brooklynClusters');
+	treeCluster('treesManhattan','manhattanClusters');
+	treeCluster('treesQueens','queensClusters');
+	treeCluster('treesStaten','statenClusters');
+
+	function treePoints(treeSource,layerid) {
+		map.addLayer({
+			'id': layerid,
+			'type': 'circle',
+			'source': treeSource,
+			'filter': ['!', ['has', 'point_count']],
+			'layout':{'visibility':'visible'},
+			'paint': {
+				// make circles larger as the user zooms from z12 to z22
+				'circle-radius': [
+			    "interpolate",
+			    ["exponential", 2],
+			    ["zoom"],
+			    0,1,
+			    //5,['/',['get', 'tree_dbh'],20],
+			    //15, ['*',0.01,['^',['/',['get', 'tree_dbh'],2],1]],
+			    22, ['*',10,['get', 'tree_dbh']],
+				],
+
+				'circle-pitch-alignment':'map',
+				'circle-color':'rgba(255,255,255,0)',
+				'circle-stroke-color': [
+				'interpolate',
+				['linear'],
+				['get', 'tree_dbh'],
+				6,
+				'rgba(150,150,50,0.6)',
+				36,
+				'rgba(50,200,75,0.8)'
+				],
+				'circle-stroke-width':{
+				'base': 1,
+				'stops': [
+					[10, 0.75],
+					[16, 1.5],
+					[22, 5]
+					]}
+				//'circle-opacity':0.3
+				}
+			});
+		};
+
+	treePoints('treesBronx','bronxPoints');
+	treePoints('treesBrooklyn','brooklynPoints');
+	treePoints('treesManhattan','manhattanPoints');
+	treePoints('treesQueens','queensPoints');
+	treePoints('treesStaten','statenPoints');
 
 
 
-	map.on('mouseenter', 'trees1', function(e) {
+	map.on('mouseenter', 'bronxPoints', function(e) {
 		map.getCanvas().style.cursor = 'pointer';
 		});
-	// Change it back to a pointer when it leaves.
-	map.on('mouseleave', 'trees1', function() {
+	map.on('mouseenter', 'brooklynPoints', function(e) {
+		map.getCanvas().style.cursor = 'pointer';
+		});
+	map.on('mouseenter', 'manhattanPoints', function(e) {
+		map.getCanvas().style.cursor = 'pointer';
+		});
+	map.on('mouseenter', 'queensPoints', function(e) {
+		map.getCanvas().style.cursor = 'pointer';
+		});
+	map.on('mouseenter', 'statenPoints', function(e) {
+		map.getCanvas().style.cursor = 'pointer';
+		});
+
+	
+	map.on('mouseleave', 'bronxPoints', function() {
 		map.getCanvas().style.cursor = '';
 		});
+	map.on('mouseleave', 'brooklynPoints', function() {
+		map.getCanvas().style.cursor = '';
+		});
+	map.on('mouseleave', 'manhattanPoints', function() {
+		map.getCanvas().style.cursor = '';
+		});
+	map.on('mouseleave', 'queensPoints', function() {
+		map.getCanvas().style.cursor = '';
+		});
+	map.on('mouseleave', 'statenPoints', function() {
+		map.getCanvas().style.cursor = '';
+		});
+
 
 	var treeID;
 	var treeLat;
 	var treeLon;
 
 	function shadow(zipcode,species,treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
-
 
 		var pointCloudFile = ' https://tree-folio.s3.amazonaws.com/folio/folio/';
 		var pointCloudFile = pointCloudFile.concat(zipcode);
@@ -209,7 +270,7 @@ map.on('load', function() {
 
 		};
 
-	map.on('click', 'trees1', function(e) {
+	function clickTree(e) {
 
 		map.removeLayer('tree');
 
@@ -318,11 +379,34 @@ map.on('load', function() {
 			document.getElementById("height").innerHTML = (max - min)*3.28;
 			document.getElementById("density").innerHTML = (max - min)*3.28/count;
 			});		
+		};
 
-		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 
-		});
+
+
+
+	map.on('click', 'bronxPoints', function(e) {
+		clickTree(e);
+		}); 
+	map.on('click', 'brooklynPoints', function(e) {
+		clickTree(e);
+		}); 
+	map.on('click', 'manhattanPoints', function(e) {
+		clickTree(e);
+		}); 
+	map.on('click', 'queensPoints', function(e) {
+		clickTree(e);
+		}); 
+	map.on('click', 'statenPoints', function(e) {
+		clickTree(e);
+		}); 
+
+
+
+
+
+
 
 	
 	document.getElementById('pickedSeason').addEventListener('change', function(f) {
