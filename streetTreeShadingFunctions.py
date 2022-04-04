@@ -202,22 +202,28 @@ def inHull(points, hull, fieldName='inside'):
 
 ############################################################################################################################################################################
 
+import matplotlib.pyplot as plt
+
+plt.clf()
+
 lasdf = processLas('las/995237.las')
+
+xMin = 996300
+xMax = 997000
+yMin = 238600
+yMax = 239400
+
+lasdf = lasDFclip(lasdf,xMin,xMax,yMin,yMax)
 
 groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
 
+plt.scatter(lasdf['X'],lasdf['Y'],marker="+",s=0.5,c='lightgray')
+
 lasdf = lasDFcanopy(lasdf)
 
-xMin = 996609.66
-xMax = 996881.09
-yMin = 238841.95
-yMax = 239024.40
-
 #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
-az = 250.0
-amp = 70.0
-
-lasdf = lasDFclip(lasdf,xMin,xMax,yMin,yMax)
+az = 220.0
+amp = 20.0
 
 lasdf['Z'] = lasdf['Z'] - groundElevation
 
@@ -244,14 +250,20 @@ inPointsNorthFalse = inPointsSouthFalse[inPointsSouthFalse['insideNorth'] == Fal
 print(inPointsNorthTrue)
 print(inPointsNorthFalse)
 
-import matplotlib.pyplot as plt
-plt.scatter(inPointsSouthTrue['groundX'],inPointsSouthTrue['groundY'],marker="+",s=1,c='red')
-plt.scatter(inPointsNorthTrue['groundX'],inPointsNorthTrue['groundY'],marker="+",s=1,c='blue')
-plt.scatter(inPointsNorthFalse['groundX'],inPointsNorthFalse['groundY'],marker="+",s=1,c='green')
+# plt.scatter(inPointsNorthFalse['groundX'],inPointsNorthFalse['groundY'],marker="+",s=1,c='green')
+# plt.scatter(inPointsNorthTrue['groundX'],inPointsNorthTrue['groundY'],marker="+",s=1,c='blue')
+# plt.scatter(inPointsSouthTrue['groundX'],inPointsSouthTrue['groundY'],marker="+",s=1,c='red')
+
+plt.scatter(inPointsNorthFalse['X'],inPointsNorthFalse['Y'],marker="+",s=5,c='green')
+plt.scatter(inPointsNorthTrue['X'],inPointsNorthTrue['Y'],marker="+",s=5,c='blue')
+plt.scatter(inPointsSouthTrue['X'],inPointsSouthTrue['Y'],marker="+",s=5,c='red')
+
 plt.show()
 
-
-
+# #setting column values by conditions
+# df['c1'].loc[df['c1'] == 'Value'] = 10
+# # or:
+# df.loc[df['c1'] == 'Value', 'c1'] = 10
 
 
 
