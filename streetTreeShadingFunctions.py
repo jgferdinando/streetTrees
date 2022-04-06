@@ -222,8 +222,8 @@ plt.scatter(lasdf['X'],lasdf['Y'],marker="+",s=0.5,c='lightgray')
 lasdf = lasDFcanopy(lasdf)
 
 #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
-az = 220.0
-amp = 20.0
+az = 110.0
+amp = 45.0
 
 lasdf['Z'] = lasdf['Z'] - groundElevation
 
@@ -250,13 +250,13 @@ inPointsNorthFalse = inPointsSouthFalse[inPointsSouthFalse['insideNorth'] == Fal
 print(inPointsNorthTrue)
 print(inPointsNorthFalse)
 
-# plt.scatter(inPointsNorthFalse['groundX'],inPointsNorthFalse['groundY'],marker="+",s=1,c='green')
-# plt.scatter(inPointsNorthTrue['groundX'],inPointsNorthTrue['groundY'],marker="+",s=1,c='blue')
-# plt.scatter(inPointsSouthTrue['groundX'],inPointsSouthTrue['groundY'],marker="+",s=1,c='red')
+plt.scatter(inPointsNorthFalse['groundX'],inPointsNorthFalse['groundY'],marker="+",s=1,c='green')
+plt.scatter(inPointsNorthTrue['groundX'],inPointsNorthTrue['groundY'],marker="+",s=1,c='blue')
+plt.scatter(inPointsSouthTrue['groundX'],inPointsSouthTrue['groundY'],marker="+",s=1,c='red')
 
-plt.scatter(inPointsNorthFalse['X'],inPointsNorthFalse['Y'],marker="+",s=5,c='green')
-plt.scatter(inPointsNorthTrue['X'],inPointsNorthTrue['Y'],marker="+",s=5,c='blue')
-plt.scatter(inPointsSouthTrue['X'],inPointsSouthTrue['Y'],marker="+",s=5,c='red')
+# plt.scatter(inPointsNorthFalse['X'],inPointsNorthFalse['Y'],marker="+",s=5,c='green')
+# plt.scatter(inPointsNorthTrue['X'],inPointsNorthTrue['Y'],marker="+",s=5,c='blue')
+# plt.scatter(inPointsSouthTrue['X'],inPointsSouthTrue['Y'],marker="+",s=5,c='red')
 
 plt.show()
 
@@ -264,6 +264,67 @@ plt.show()
 # df['c1'].loc[df['c1'] == 'Value'] = 10
 # # or:
 # df.loc[df['c1'] == 'Value', 'c1'] = 10
+
+
+
+#############################################################
+
+#3d plot 
+
+plt.close()
+
+import matplotlib.path as mpltPath
+import matplotlib as mpl
+from mpl_toolkits.mplot3d import Axes3D
+
+fig = plt.figure(figsize=(3,3), dpi=600, constrained_layout=True)
+
+ax1 = fig.add_subplot(1, 1, 1, projection='3d') ############
+
+xMin = 996675
+xMax = 996925
+yMin = 238775
+yMax = 239225
+
+inPointsNorthFalse = lasDFclip(inPointsNorthFalse,xMin,xMax,yMin,yMax)
+inPointsNorthTrue = lasDFclip(inPointsNorthTrue,xMin,xMax,yMin,yMax)
+inPointsSouthTrue = lasDFclip(inPointsSouthTrue,xMin,xMax,yMin,yMax)
+
+ax1.scatter3D(inPointsNorthFalse['X'], inPointsNorthFalse['Y'], inPointsNorthFalse['Z'],color='green', zdir='z', s=0.01, marker='+', depthshade=True)
+ax1.scatter3D(inPointsNorthTrue['X'], inPointsNorthTrue['Y'], inPointsNorthTrue['Z'],color='blue', zdir='z', s=0.1,marker='+', depthshade=True)
+ax1.scatter3D(inPointsSouthTrue['X'], inPointsSouthTrue['Y'], inPointsSouthTrue['Z'],color='red', zdir='z', s=0.1, marker='+', depthshade=True)
+#ax1.scatter3D(xyzDF2['X'], xyzDF2['Y'], xyzDF2['Z'], zdir='z', s=0.2, c=xyzDF2['intens'], cmap='bone', marker='+', depthshade=True)
+#ax.plot_trisurf(lidar_df[0], lidar_df[1], lidar_df[2], color=[lidar_df[2],lidar_df[2],lidar_df[2]], linewidth=0.2, antialiased=True)
+
+ax1.view_init(0, -20)
+
+ax1.set_xticks([])
+ax1.set_yticks([])
+ax1.set_zticks([])
+ax1.grid(False)
+ax1.set_axis_off()
+
+ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+
+# ax1.set_xlim3d(-35, 35)
+# ax1.set_ylim3d(-35, 35)
+ax1.set_zlim3d(0, 250)
+
+fig.subplots_adjust(bottom=-0.1, top=1.1, left=-0.1, right=1.1, wspace=-0.1, hspace=-0.1)
+
+fig.savefig('3dstreet.png')
+
+plt.show()
+
+#plt.close()
+
+
+
+
+
+
 
 
 
