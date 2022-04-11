@@ -45,21 +45,27 @@ def lasDFclip(lidar_df,xMin,xMax,yMin,yMax):
 
 #
 
-def footprintPointsFromGeoJSON(filepath):
+def readGeoJSON(filepath):
     import json
-    
-    points = []
     
     with open(filepath) as f:
         features = json.load(f)["features"]
+                    
+    return features
 
-    for feature in features:
-        height = feature["properties"]["heightroof"] ################## verify this is the correct attribute name
-        for polygonPart in feature["geometry"]["coordinates"]:
-            for polygonSubPart in polygonPart:
-                for coordinates in polygonSubPart:
-                    point = [coordinates[0],coordinates[1],height]
-                    points.append(point)
+#
+
+def footprintPointsFromGeoJSON(feature):
+    import json
+    
+    points = []
+
+    height = feature["properties"]["heightroof"] ################## verify this is the correct attribute name
+    for polygonPart in feature["geometry"]["coordinates"]:
+        for polygonSubPart in polygonPart:
+            for coordinates in polygonSubPart:
+                point = [coordinates[0],coordinates[1],height]
+                points.append(point)
                     
     return points, height
 
@@ -86,16 +92,13 @@ def projectToGround(point,az,amp):
     
     import math
     
-    sinAz = math.sin( math.radians( az ) )
-    cosAz = math.cos( math.radians( az ) )
-    tanAz = math.tan( math.radians( az ) )
-    sinAmp = math.sin( math.radians(amp-90) )
-    cosAmp = math.cos( math.radians(amp-90) )
-    tanAmp = math.tan( math.radians(-amp) )
+    sinAz = math.sin( math.radians( az + 180.0 ) )
+    cosAz = math.cos( math.radians( az + 180.0 ) )
+    tanAmp = math.tan( math.radians(amp) )
     
-    pointGroundX = point[0] + ((point[2])/(tanAmp*sinAz))
+    pointGroundX = point[0] + ( ( point[2] / tanAmp ) *sinAz )
     
-    pointGroundY = point[1] + ((point[2])/(tanAmp*cosAz))
+    pointGroundY = point[1] + ( ( point[2] / tanAmp ) *cosAz )
     
     pointGroundZ =  point[2] * 0
     
@@ -107,14 +110,11 @@ def projectToGroundX(point,az,amp):
     
     import math
     
-    sinAz = math.sin( math.radians( az ) )
-    cosAz = math.cos( math.radians( az ) )
-    tanAz = math.tan( math.radians( az ) )
-    sinAmp = math.sin( math.radians(amp-90) )
-    cosAmp = math.cos( math.radians(amp-90) )
-    tanAmp = math.tan( math.radians(-amp) )
+    sinAz = math.sin( math.radians( az + 180.0 ) )
+    cosAz = math.cos( math.radians( az + 180.0 ) )
+    tanAmp = math.tan( math.radians(amp) )
     
-    pointGroundX = point[0] + ((point[2])/(tanAmp*sinAz))
+    pointGroundX = point[0] + ( ( point[2] / tanAmp ) * sinAz )
         
     return pointGroundX
 
@@ -124,14 +124,11 @@ def projectToGroundY(point,az,amp):
     
     import math
     
-    sinAz = math.sin( math.radians( az ) )
-    cosAz = math.cos( math.radians( az ) )
-    tanAz = math.tan( math.radians( az ) )
-    sinAmp = math.sin( math.radians(amp-90) )
-    cosAmp = math.cos( math.radians(amp-90) )
-    tanAmp = math.tan( math.radians(-amp) )
+    sinAz = math.sin( math.radians( az + 180.0 ) )
+    cosAz = math.cos( math.radians( az + 180.0 ) )
+    tanAmp = math.tan( math.radians(amp) )
     
-    pointGroundY = point[1] + ((point[2])/(tanAmp*cosAz))
+    pointGroundY = point[1] + ( ( point[2] / tanAmp ) * cosAz )
     
     return pointGroundY
 
@@ -163,21 +160,45 @@ def convexHull2D(points):
     
     hull = ConvexHull(points)
     
-    plt.plot(points[:,0], points[:,1], 'o')
+    # plt.plot(points[:,0], points[:,1], 'o')
     
-    for simplex in hull.simplices:
-        plt.plot(points[simplex, 0], points[simplex, 1], 'k-')
+    # for simplex in hull.simplices:
+    #     plt.plot(points[simplex, 0], points[simplex, 1], 'k-')
         
-    plt.plot(points[hull.vertices,0], points[hull.vertices,1], 'r--', lw=2)
-    plt.plot(points[hull.vertices[0],0], points[hull.vertices[0],1], 'ro')
+    # plt.plot(points[hull.vertices,0], points[hull.vertices,1], 'r--', lw=2)
+    # plt.plot(points[hull.vertices[0],0], points[hull.vertices[0],1], 'ro')
     
-    plt.show()
+    # plt.show()
 
     return hull
 
 #
 
-def inHull(points, hull, fieldName='inside'):
+def inShadow(points, hull):
+    
+    import numpy as np
+    import matplotlib.path as mpltPath
+    from scipy.spatial import Delaunay
+    
+    vertexList = (hull.vertices).tolist()
+    polygonPoints = []
+    for index in vertexList:
+        polygonPoints.append(hull.points[index])
+    
+    path = mpltPath.Path(polygonPoints)
+    
+    pointsIn = points[['X','Y']]
+    pointsInGround = points[['groundX','groundY']]
+
+    points['temp'] = path.contains_points(pointsIn) * path.contains_points(pointsInGround)
+    
+    points['inShade'] = np.where( (points['inShade'] == 1) | (points['temp'] == 1),1,0 )
+    
+    return points
+
+#
+
+def inFacade(points, hull, fieldName='inside'):
     
     import numpy as np
     import matplotlib.path as mpltPath
@@ -194,8 +215,7 @@ def inHull(points, hull, fieldName='inside'):
     #pointsIn = pointsIn.to_numpy()
     points[fieldName] = path.contains_points(pointsIn)
     
-    return points
-        
+    return points        
 
 
 #
@@ -222,103 +242,91 @@ plt.scatter(lasdf['X'],lasdf['Y'],marker="+",s=0.5,c='lightgray')
 lasdf = lasDFcanopy(lasdf)
 
 #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
-az = 110.0
-amp = 45.0
+az = 200.0
+amp = 25.0
 
 lasdf['Z'] = lasdf['Z'] - groundElevation
-
-southBuildingPoints, southBuildingHeight = footprintPointsFromGeoJSON('buildings/singleBuildingSouth.geojson')
-southBuildingPointsGround = pointsForHull(southBuildingPoints,az,amp)
-southBuildingHull = convexHull2D(southBuildingPointsGround)
-
-northBuildingPoints, northBuildingHeight = footprintPointsFromGeoJSON('buildings/singleBuildingNorth.geojson')
-northBuildingPointsGround = pointsForHull(northBuildingPoints,az,amp)
-northBuildingHull = convexHull2D(northBuildingPointsGround)
 
 lasdf['groundX'] = lasdf.apply(lambda x: projectToGroundX([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 lasdf['groundY'] = lasdf.apply(lambda x: projectToGroundY([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 
-lasdf = inHull(lasdf,southBuildingHull,'insideSouth')
-lasdf = inHull(lasdf,northBuildingHull,'insideNorth')
+lasdf['inShade'] = 0
 
-inPointsSouthTrue = lasdf[lasdf['insideSouth'] == True]
-inPointsSouthFalse = lasdf[lasdf['insideSouth'] == False]
+features = readGeoJSON('buildings/buildingsTile995237.geojson')
 
-inPointsNorthTrue = inPointsSouthFalse[inPointsSouthFalse['insideNorth'] == True]
-inPointsNorthFalse = inPointsSouthFalse[inPointsSouthFalse['insideNorth'] == False]
+i=0
+for feature in features:
+    print(i)
+    buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+    buildingPointsGround = pointsForHull(buildingPoints,az,amp)
+    buildingHull = convexHull2D(buildingPointsGround)
+    lasdf = inShadow(lasdf,buildingHull)
+    i+=1
+    
+print(lasdf)
 
-print(inPointsNorthTrue)
-print(inPointsNorthFalse)
+lasInShade = lasdf[lasdf['inShade'] == 1]
+lasNotShade = lasdf[lasdf['inShade'] == 0]
 
-plt.scatter(inPointsNorthFalse['groundX'],inPointsNorthFalse['groundY'],marker="+",s=1,c='green')
-plt.scatter(inPointsNorthTrue['groundX'],inPointsNorthTrue['groundY'],marker="+",s=1,c='blue')
-plt.scatter(inPointsSouthTrue['groundX'],inPointsSouthTrue['groundY'],marker="+",s=1,c='red')
-
-# plt.scatter(inPointsNorthFalse['X'],inPointsNorthFalse['Y'],marker="+",s=5,c='green')
-# plt.scatter(inPointsNorthTrue['X'],inPointsNorthTrue['Y'],marker="+",s=5,c='blue')
-# plt.scatter(inPointsSouthTrue['X'],inPointsSouthTrue['Y'],marker="+",s=5,c='red')
-
-plt.show()
-
-# #setting column values by conditions
-# df['c1'].loc[df['c1'] == 'Value'] = 10
-# # or:
-# df.loc[df['c1'] == 'Value', 'c1'] = 10
-
-
-
-#############################################################
-
-#3d plot 
-
-plt.close()
-
-import matplotlib.path as mpltPath
-import matplotlib as mpl
-from mpl_toolkits.mplot3d import Axes3D
-
-fig = plt.figure(figsize=(3,3), dpi=600, constrained_layout=True)
-
-ax1 = fig.add_subplot(1, 1, 1, projection='3d') ############
-
-xMin = 996675
-xMax = 996925
-yMin = 238775
-yMax = 239225
-
-inPointsNorthFalse = lasDFclip(inPointsNorthFalse,xMin,xMax,yMin,yMax)
-inPointsNorthTrue = lasDFclip(inPointsNorthTrue,xMin,xMax,yMin,yMax)
-inPointsSouthTrue = lasDFclip(inPointsSouthTrue,xMin,xMax,yMin,yMax)
-
-ax1.scatter3D(inPointsNorthFalse['X'], inPointsNorthFalse['Y'], inPointsNorthFalse['Z'],color='green', zdir='z', s=0.01, marker='+', depthshade=True)
-ax1.scatter3D(inPointsNorthTrue['X'], inPointsNorthTrue['Y'], inPointsNorthTrue['Z'],color='blue', zdir='z', s=0.1,marker='+', depthshade=True)
-ax1.scatter3D(inPointsSouthTrue['X'], inPointsSouthTrue['Y'], inPointsSouthTrue['Z'],color='red', zdir='z', s=0.1, marker='+', depthshade=True)
-#ax1.scatter3D(xyzDF2['X'], xyzDF2['Y'], xyzDF2['Z'], zdir='z', s=0.2, c=xyzDF2['intens'], cmap='bone', marker='+', depthshade=True)
-#ax.plot_trisurf(lidar_df[0], lidar_df[1], lidar_df[2], color=[lidar_df[2],lidar_df[2],lidar_df[2]], linewidth=0.2, antialiased=True)
-
-ax1.view_init(0, -20)
-
-ax1.set_xticks([])
-ax1.set_yticks([])
-ax1.set_zticks([])
-ax1.grid(False)
-ax1.set_axis_off()
-
-ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
-
-# ax1.set_xlim3d(-35, 35)
-# ax1.set_ylim3d(-35, 35)
-ax1.set_zlim3d(0, 250)
-
-fig.subplots_adjust(bottom=-0.1, top=1.1, left=-0.1, right=1.1, wspace=-0.1, hspace=-0.1)
-
-fig.savefig('3dstreet.png')
+plt.scatter(lasNotShade['X'],lasNotShade['Y'],marker="+",s=0.5,c='green')
+plt.scatter(lasInShade['X'],lasInShade['Y'],marker="+",s=2,c='blue')
 
 plt.show()
 
-#plt.close()
+
+
+# #############################################################
+
+# #3d plot 
+
+# plt.close()
+
+# import matplotlib.path as mpltPath
+# import matplotlib as mpl
+# from mpl_toolkits.mplot3d import Axes3D
+
+# fig = plt.figure(figsize=(3,3), dpi=600, constrained_layout=True)
+
+# ax1 = fig.add_subplot(1, 1, 1, projection='3d') ############
+
+# xMin = 996675
+# xMax = 996925
+# yMin = 238775
+# yMax = 239225
+
+# inPointsNorthFalse = lasDFclip(inPointsNorthFalse,xMin,xMax,yMin,yMax)
+# inPointsNorthTrue = lasDFclip(inPointsNorthTrue,xMin,xMax,yMin,yMax)
+# inPointsSouthTrue = lasDFclip(inPointsSouthTrue,xMin,xMax,yMin,yMax)
+
+# ax1.scatter3D(inPointsNorthFalse['X'], inPointsNorthFalse['Y'], inPointsNorthFalse['Z'],color='green', zdir='z', s=0.01, marker='+', depthshade=True)
+# ax1.scatter3D(inPointsNorthTrue['X'], inPointsNorthTrue['Y'], inPointsNorthTrue['Z'],color='blue', zdir='z', s=0.1,marker='+', depthshade=True)
+# ax1.scatter3D(inPointsSouthTrue['X'], inPointsSouthTrue['Y'], inPointsSouthTrue['Z'],color='red', zdir='z', s=0.1, marker='+', depthshade=True)
+# #ax1.scatter3D(xyzDF2['X'], xyzDF2['Y'], xyzDF2['Z'], zdir='z', s=0.2, c=xyzDF2['intens'], cmap='bone', marker='+', depthshade=True)
+# #ax.plot_trisurf(lidar_df[0], lidar_df[1], lidar_df[2], color=[lidar_df[2],lidar_df[2],lidar_df[2]], linewidth=0.2, antialiased=True)
+
+# ax1.view_init(0, -20)
+
+# ax1.set_xticks([])
+# ax1.set_yticks([])
+# ax1.set_zticks([])
+# ax1.grid(False)
+# ax1.set_axis_off()
+
+# ax1.xaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+# ax1.yaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+# ax1.zaxis.set_pane_color((1.0, 1.0, 1.0, 0.0))
+
+# # ax1.set_xlim3d(-35, 35)
+# # ax1.set_ylim3d(-35, 35)
+# ax1.set_zlim3d(0, 250)
+
+# fig.subplots_adjust(bottom=-0.1, top=1.1, left=-0.1, right=1.1, wspace=-0.1, hspace=-0.1)
+
+# fig.savefig('3dstreet.png')
+
+# plt.show()
+
+# #plt.close()
 
 
 
