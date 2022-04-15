@@ -8,24 +8,32 @@ Created on Thu Mar 24 08:07:59 2022
 
 #
 
+#required dependencies
+
+import laspy
+import numpy as np
+import pandas as pd
+import json
+from pyproj import Transformer
+import math
+from scipy.spatial import ConvexHull, convex_hull_plot_2d
+import matplotlib.pyplot as plt
+import matplotlib.path as mpltPath
+
+#
+
 # read las file into a pandas dataframe
 
 def processLas(lasFileName):
-    
-    import laspy
-    import numpy as np
-    import pandas as pd
-        
     if lasFileName.endswith('.las'):
         las = laspy.read(lasFileName)
-        point_format = las.point_format
+        #point_format = las.point_format
         lidar_points = np.array((las.X,las.Y,las.Z,las.intensity,las.classification, las.return_number, las.number_of_returns)).transpose()
         lidar_df = pd.DataFrame(lidar_points)
         lidar_df[0] = lidar_df[0]/100
         lidar_df[1] = lidar_df[1]/100
         lidar_df[2] = lidar_df[2]/100
         lidar_df.columns = ['X', 'Y', 'Z', 'intens', 'class', 'return_number', 'number_of_returns']
-    
     return lidar_df
 
 #
@@ -45,34 +53,35 @@ def lasDFclip(lidar_df,xMin,xMax,yMin,yMax):
 
 #
 
+def treeDFclip(tree_df,xMin,xMax,yMin,yMax):
+    tree_clip_df = tree_df[ tree_df['X'] >= xMin ]
+    tree_clip_df = tree_clip_df[ tree_clip_df['X'] <= xMax ]
+    tree_clip_df = tree_clip_df[ tree_clip_df['Y'] >= yMin ]
+    tree_clip_df = tree_clip_df[ tree_clip_df['Y'] <= yMax ]
+    return tree_clip_df
+
+#
+
 def readGeoJSON(filepath):
-    import json
-    
     with open(filepath) as f:
-        features = json.load(f)["features"]
-                    
+        features = json.load(f)["features"]                
     return features
 
 #
 
-def footprintPointsFromGeoJSON(feature):
-    import json
-    
+def footprintPointsFromGeoJSON(feature):   
     points = []
-
     height = feature["properties"]["heightroof"] ################## verify this is the correct attribute name
     for polygonPart in feature["geometry"]["coordinates"]:
         for polygonSubPart in polygonPart:
             for coordinates in polygonSubPart:
                 point = [coordinates[0],coordinates[1],height]
-                points.append(point)
-                    
+                points.append(point)                  
     return points, height
 
 #
 
 def convertCoords(x,y):
-    from pyproj import Transformer
     transformer = Transformer.from_crs("epsg:2263", "epsg:4326")
     lat, lon = transformer.transform(x, y)
     return lat, lon
@@ -80,7 +89,6 @@ def convertCoords(x,y):
 #
 
 def convertLatLon(lat,lon):
-    from pyproj import Transformer
     #translate from geojson CRS (NAD 1983) to .las CRS (UTM Zone 18N (meters))
     transformer = Transformer.from_crs( "epsg:4326", "epsg:2263" ) 
     x, y = transformer.transform(lat, lon)
@@ -89,132 +97,74 @@ def convertLatLon(lat,lon):
 #
 
 def projectToGround(point,az,amp):
-    
-    import math
-    
     sinAz = math.sin( math.radians( az + 180.0 ) )
     cosAz = math.cos( math.radians( az + 180.0 ) )
     tanAmp = math.tan( math.radians(amp) )
-    
     pointGroundX = point[0] + ( ( point[2] / tanAmp ) *sinAz )
-    
     pointGroundY = point[1] + ( ( point[2] / tanAmp ) *cosAz )
-    
     pointGroundZ =  point[2] * 0
-    
     return pointGroundX,pointGroundY,pointGroundZ
 
 #
 
 def projectToGroundX(point,az,amp):
-    
-    import math
-    
     sinAz = math.sin( math.radians( az + 180.0 ) )
     cosAz = math.cos( math.radians( az + 180.0 ) )
     tanAmp = math.tan( math.radians(amp) )
-    
-    pointGroundX = point[0] + ( ( point[2] / tanAmp ) * sinAz )
-        
+    pointGroundX = point[0] + ( ( point[2] / tanAmp ) * sinAz )   
     return pointGroundX
 
 #
 
-def projectToGroundY(point,az,amp):
-    
-    import math
-    
+def projectToGroundY(point,az,amp):    
     sinAz = math.sin( math.radians( az + 180.0 ) )
     cosAz = math.cos( math.radians( az + 180.0 ) )
     tanAmp = math.tan( math.radians(amp) )
-    
     pointGroundY = point[1] + ( ( point[2] / tanAmp ) * cosAz )
-    
     return pointGroundY
 
 #
 
 def pointsForHull(points,az,amp):
     groundPointList = []
-
     for point in points:
-        #print(point)
         point[0],point[1] = convertLatLon(point[1],point[0])
-        #print(point)
         groundPointList.append([point[0],point[1]])
         groundPoint = projectToGround(point,az,amp)
-        #print(groundPoint)
-        groundPointList.append([groundPoint[0],groundPoint[1]])
-        
+        groundPointList.append([groundPoint[0],groundPoint[1]])    
     return groundPointList
 
 #
 
 def convexHull2D(points):
-    
-    import numpy as np
-    from scipy.spatial import ConvexHull, convex_hull_plot_2d
-    import matplotlib.pyplot as plt
-    
     points = np.array(points)
-    
     hull = ConvexHull(points)
-    
-    # plt.plot(points[:,0], points[:,1], 'o')
-    
-    # for simplex in hull.simplices:
-    #     plt.plot(points[simplex, 0], points[simplex, 1], 'k-')
-        
-    # plt.plot(points[hull.vertices,0], points[hull.vertices,1], 'r--', lw=2)
-    # plt.plot(points[hull.vertices[0],0], points[hull.vertices[0],1], 'ro')
-    
-    # plt.show()
-
     return hull
 
 #
 
-def inShadow(points, hull):
-    
-    import numpy as np
-    import matplotlib.path as mpltPath
-    from scipy.spatial import Delaunay
-    
+def inShadow(points, hull):    
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
         polygonPoints.append(hull.points[index])
-    
     path = mpltPath.Path(polygonPoints)
-    
     pointsIn = points[['X','Y']]
     pointsInGround = points[['groundX','groundY']]
-
     points['temp'] = path.contains_points(pointsIn) * path.contains_points(pointsInGround)
-    
     points['inShade'] = np.where( (points['inShade'] == 1) | (points['temp'] == 1),1,0 )
-    
     return points
 
 #
 
 def inFacade(points, hull, fieldName='inside'):
-    
-    import numpy as np
-    import matplotlib.path as mpltPath
-    from scipy.spatial import Delaunay
-    
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
         polygonPoints.append(hull.points[index])
-    
     path = mpltPath.Path(polygonPoints)
-    
     pointsIn = points[['groundX','groundY']]
-    #pointsIn = pointsIn.to_numpy()
     points[fieldName] = path.contains_points(pointsIn)
-    
     return points        
 
 
@@ -222,11 +172,11 @@ def inFacade(points, hull, fieldName='inside'):
 
 ############################################################################################################################################################################
 
-import matplotlib.pyplot as plt
 
-plt.clf()
 
 lasdf = processLas('las/995237.las')
+
+lasdf = lasdf.dropna()
 
 xMin = 996300
 xMax = 997000
@@ -241,11 +191,11 @@ plt.scatter(lasdf['X'],lasdf['Y'],marker="+",s=0.5,c='lightgray')
 
 lasdf = lasDFcanopy(lasdf)
 
-#az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
-az = 200.0
-amp = 25.0
-
 lasdf['Z'] = lasdf['Z'] - groundElevation
+
+#az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
+az = 225.0
+amp = 45.0
 
 lasdf['groundX'] = lasdf.apply(lambda x: projectToGroundX([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 lasdf['groundY'] = lasdf.apply(lambda x: projectToGroundY([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
@@ -255,7 +205,7 @@ lasdf['inShade'] = 0
 features = readGeoJSON('buildings/buildingsTile995237.geojson')
 
 i=0
-for feature in features:
+for feature in features[:]:
     print(i)
     buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
     buildingPointsGround = pointsForHull(buildingPoints,az,amp)
