@@ -22,8 +22,6 @@ import matplotlib.path as mpltPath
 
 #
 
-# read las file into a pandas dataframe
-
 def processLas(lasFileName):
     if lasFileName.endswith('.las'):
         las = laspy.read(lasFileName)
@@ -34,6 +32,8 @@ def processLas(lasFileName):
         lidar_df[1] = lidar_df[1]/100
         lidar_df[2] = lidar_df[2]/100
         lidar_df.columns = ['X', 'Y', 'Z', 'intens', 'class', 'return_number', 'number_of_returns']
+    else:
+        print('not a las file')
     return lidar_df
 
 #
@@ -54,10 +54,11 @@ def lasDFclip(lidar_df,xMin,xMax,yMin,yMax):
 #
 
 def treeDFclip(tree_df,xMin,xMax,yMin,yMax):
-    tree_clip_df = tree_df[ tree_df['X'] >= xMin ]
-    tree_clip_df = tree_clip_df[ tree_clip_df['X'] <= xMax ]
-    tree_clip_df = tree_clip_df[ tree_clip_df['Y'] >= yMin ]
-    tree_clip_df = tree_clip_df[ tree_clip_df['Y'] <= yMax ]
+    tree_clip_df = tree_df[ tree_df['x_sp'] >= xMin ]
+    tree_clip_df = tree_clip_df[ tree_clip_df['x_sp'] <= xMax ]
+    tree_clip_df = tree_clip_df[ tree_clip_df['y_sp'] >= yMin ]
+    tree_clip_df = tree_clip_df[ tree_clip_df['y_sp'] <= yMax ]
+    #add a Z clip
     return tree_clip_df
 
 #
@@ -136,10 +137,34 @@ def pointsForHull(points,az,amp):
 
 #
 
+def pointsForBufferedHull(points):
+    groundPointList = []
+    for point in points:
+        #print(point)
+        #point[0],point[1] = convertLatLon(point[1],point[0])
+        #print(point)
+        groundPointList.append([point[0],point[1]])   
+    return groundPointList
+
+#
+
 def convexHull2D(points):
     points = np.array(points)
     hull = ConvexHull(points)
     return hull
+
+#
+
+def inBuilding(points, hull):      
+    vertexList = (hull.vertices).tolist()
+    polygonPoints = []
+    for index in vertexList:
+        polygonPoints.append(hull.points[index])
+    path = mpltPath.Path(polygonPoints)
+    pointsIn = points[['X','Y']]
+    points['temp'] = path.contains_points(pointsIn) 
+    points['inBuilding'] = np.where( (points['inBuilding'] == 1) | (points['temp'] == 1),1,0 )
+    return points
 
 #
 
@@ -157,14 +182,15 @@ def inShadow(points, hull):
 
 #
 
-def inFacade(points, hull, fieldName='inside'):
+def inFacade(points, hull):
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
         polygonPoints.append(hull.points[index])
     path = mpltPath.Path(polygonPoints)
     pointsIn = points[['groundX','groundY']]
-    points[fieldName] = path.contains_points(pointsIn)
+    points['temp'] = path.contains_points(pointsIn)
+    points['inFacade'] = np.where( (points['inFacade'] == 1) | (points['temp'] == 1),1,0 )
     return points        
 
 
@@ -174,37 +200,70 @@ def inFacade(points, hull, fieldName='inside'):
 
 
 
-lasdf = processLas('las/995237.las')
-
-lasdf = lasdf.dropna()
-
 xMin = 996300
 xMax = 997000
 yMin = 238600
 yMax = 239400
 
+# treedf = pd.read_csv('csv/2015StreetTreesCensus_TREES.csv')
+# treedf = treeDFclip(treedf,xMin,xMax,yMin,yMax)
+# print(treedf)
+
+lasdf = processLas('las/995237.las')
+lasdf = lasdf.dropna()
 lasdf = lasDFclip(lasdf,xMin,xMax,yMin,yMax)
 
 groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
-
-plt.scatter(lasdf['X'],lasdf['Y'],marker="+",s=0.5,c='lightgray')
 
 lasdf = lasDFcanopy(lasdf)
 
 lasdf['Z'] = lasdf['Z'] - groundElevation
 
 #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
-az = 225.0
+az = 179.0
 amp = 45.0
 
 lasdf['groundX'] = lasdf.apply(lambda x: projectToGroundX([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 lasdf['groundY'] = lasdf.apply(lambda x: projectToGroundY([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 
+
+
+
+
+print(lasdf)
+
+lasdf['temp'] = 0
+lasdf['inBuilding'] = 0
+
+features = readGeoJSON('buildings/buildingsTile995237buffered.geojson')
+
+i=1
+for feature in features[:]:
+    print(i)
+    buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+    buildingPoints = pointsForBufferedHull(buildingPoints)
+    buildingHull = convexHull2D(buildingPoints)
+    lasdf = inBuilding(lasdf,buildingHull)
+    i+=1
+    
+lasBuildings = lasdf[lasdf['inBuilding'] == 1]
+lasdf = lasdf[lasdf['inBuilding'] == 0]
+
+print(lasdf)
+
+plt.scatter(lasBuildings['X'],lasBuildings['Y'],marker="+",s=2,c=lasBuildings['Z'],cmap='binary')
+
+
+
+
+
+lasdf['temp'] = 0
 lasdf['inShade'] = 0
 
 features = readGeoJSON('buildings/buildingsTile995237.geojson')
 
-i=0
+#check in shadow
+i=1
 for feature in features[:]:
     print(i)
     buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
@@ -218,10 +277,37 @@ print(lasdf)
 lasInShade = lasdf[lasdf['inShade'] == 1]
 lasNotShade = lasdf[lasdf['inShade'] == 0]
 
-plt.scatter(lasNotShade['X'],lasNotShade['Y'],marker="+",s=0.5,c='green')
-plt.scatter(lasInShade['X'],lasInShade['Y'],marker="+",s=2,c='blue')
+lasNotShade['temp'] = 0
+lasNotShade['inFacade'] = 0
+
+#check shading facade
+i=1
+for feature in features[:]:
+    print(i)
+    buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+    buildingPointsGround = pointsForHull(buildingPoints,az,amp)
+    buildingHull = convexHull2D(buildingPointsGround)
+    lasNotShade = inFacade(lasNotShade,buildingHull)
+    i+=1
+    
+print(lasNotShade)
+
+
+lasShadeFacade = lasNotShade[lasNotShade['inFacade'] == 1]
+lasShadeRoad = lasNotShade[lasNotShade['inFacade'] == 0]
+
+plt.scatter(lasShadeRoad['X'],lasShadeRoad['Y'],marker="o",s=4,c=lasShadeRoad['Z'],cmap='summer')
+plt.scatter(lasInShade['X'],lasInShade['Y'],marker="o",s=4,c=lasInShade['Z'],cmap='bone')
+plt.scatter(lasShadeFacade['X'],lasShadeFacade['Y'],marker="o",s=4,c=lasShadeFacade['Z'],cmap='GnBu')
 
 plt.show()
+
+
+
+
+
+
+
 
 
 
