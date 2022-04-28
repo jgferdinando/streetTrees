@@ -19,6 +19,7 @@ import math
 from scipy.spatial import ConvexHull, convex_hull_plot_2d
 import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
+import datetime
 
 #
 
@@ -98,13 +99,17 @@ def convertLatLon(lat,lon):
 #
 
 def projectToGround(point,az,amp):
-    sinAz = math.sin( math.radians( az + 180.0 ) )
-    cosAz = math.cos( math.radians( az + 180.0 ) )
-    tanAmp = math.tan( math.radians(amp) )
-    pointGroundX = point[0] + ( ( point[2] / tanAmp ) *sinAz )
-    pointGroundY = point[1] + ( ( point[2] / tanAmp ) *cosAz )
-    pointGroundZ =  point[2] * 0
-    return pointGroundX,pointGroundY,pointGroundZ
+    if type(point[2]) is float:
+        sinAz = math.sin( math.radians( az + 180.0 ) )
+        cosAz = math.cos( math.radians( az + 180.0 ) )
+        tanAmp = math.tan( math.radians(amp) )
+        pointGroundX = point[0] + ( ( point[2] / tanAmp ) *sinAz )
+        pointGroundY = point[1] + ( ( point[2] / tanAmp ) *cosAz )
+        pointGroundZ =  point[2] * 0
+        return pointGroundX,pointGroundY,pointGroundZ
+    else: 
+        print('bad Z')
+        return point[0],point[1],1.0
 
 #
 
@@ -115,14 +120,16 @@ def projectToGroundX(point,az,amp):
     pointGroundX = point[0] + ( ( point[2] / tanAmp ) * sinAz )   
     return pointGroundX
 
+
 #
 
-def projectToGroundY(point,az,amp):    
+def projectToGroundY(point,az,amp):   
     sinAz = math.sin( math.radians( az + 180.0 ) )
     cosAz = math.cos( math.radians( az + 180.0 ) )
     tanAmp = math.tan( math.radians(amp) )
     pointGroundY = point[1] + ( ( point[2] / tanAmp ) * cosAz )
     return pointGroundY
+
 
 #
 
@@ -196,20 +203,51 @@ def inFacade(points, hull):
 
 #
 
+def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
+    
+    features2 = []
+    
+    for feature in features[:]:
+        buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+        xs = []
+        ys = []
+        for buildingPoint in buildingPoints:
+            xs.append(buildingPoint[0])
+            ys.append(buildingPoint[1])
+        xCenter = sum(xs)/len(xs)
+        yCenter = sum(ys)/len(ys)
+        
+        if latLon == 'latLon':
+            xCenter,yCenter = convertLatLon(yCenter,xCenter)
+        else:
+            xCenter,yCenter = xCenter,yCenter
+        
+        if xCenter > xMin and xCenter < xMax and yCenter > yMin and yCenter < yMax:
+            features2.append(feature)
+        else:
+            continue
+        
+    return features2
+
+
+
 ############################################################################################################################################################################
 
 
+plt.clf()
 
-xMin = 996300
-xMax = 997000
-yMin = 238600
-yMax = 239400
+startTime = str(datetime.datetime.now())
+
+xMin = 988200
+xMax = 988800
+yMin = 188800
+yMax = 189200
 
 # treedf = pd.read_csv('csv/2015StreetTreesCensus_TREES.csv')
 # treedf = treeDFclip(treedf,xMin,xMax,yMin,yMax)
 # print(treedf)
 
-lasdf = processLas('las/995237.las')
+lasdf = processLas('las/987187.las')
 lasdf = lasdf.dropna()
 lasdf = lasDFclip(lasdf,xMin,xMax,yMin,yMax)
 
@@ -219,6 +257,8 @@ lasdf = lasDFcanopy(lasdf)
 
 lasdf['Z'] = lasdf['Z'] - groundElevation
 
+lasdf = lasdf[ lasdf['Z'] < 1000 ]
+
 #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
 az = 179.0
 amp = 45.0
@@ -226,20 +266,19 @@ amp = 45.0
 lasdf['groundX'] = lasdf.apply(lambda x: projectToGroundX([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 lasdf['groundY'] = lasdf.apply(lambda x: projectToGroundY([x['X'],x['Y'],x['Z']],az,amp) , axis=1)
 
-
-
-
-
 print(lasdf)
 
 lasdf['temp'] = 0
 lasdf['inBuilding'] = 0
 
-features = readGeoJSON('buildings/buildingsTile995237buffered.geojson')
+#buffered buildings currently use state plane coordinates for their vertices 
+featuresBuffered = readGeoJSON('buildings/buildingsTile987187buffered.geojson')
+    
+featuresBuffered = trimGeoJSON(featuresBuffered,xMin,xMax,yMin,yMax,'statePlane')
 
 i=1
-for feature in features[:]:
-    print(i)
+for feature in featuresBuffered:
+    #print(i)
     buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
     buildingPoints = pointsForBufferedHull(buildingPoints)
     buildingHull = convexHull2D(buildingPoints)
@@ -251,24 +290,26 @@ lasdf = lasdf[lasdf['inBuilding'] == 0]
 
 print(lasdf)
 
-plt.scatter(lasBuildings['X'],lasBuildings['Y'],marker="+",s=2,c=lasBuildings['Z'],cmap='binary')
-
-
-
-
+plt.scatter(lasBuildings['X'],lasBuildings['Y'],marker="+",s=1,c=lasBuildings['Z'],cmap='binary')
 
 lasdf['temp'] = 0
 lasdf['inShade'] = 0
 
-features = readGeoJSON('buildings/buildingsTile995237.geojson')
+
+features = readGeoJSON('buildings/buildingsTile987187.geojson')
+
+features = trimGeoJSON(features,xMin,xMax,yMin,yMax,'latLon')
+
+hulls = []
 
 #check in shadow
 i=1
-for feature in features[:]:
-    print(i)
+for feature in features:
+    #print(i)
     buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
     buildingPointsGround = pointsForHull(buildingPoints,az,amp)
     buildingHull = convexHull2D(buildingPointsGround)
+    hulls.append(buildingHull)
     lasdf = inShadow(lasdf,buildingHull)
     i+=1
     
@@ -282,31 +323,35 @@ lasNotShade['inFacade'] = 0
 
 #check shading facade
 i=1
-for feature in features[:]:
-    print(i)
-    buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
-    buildingPointsGround = pointsForHull(buildingPoints,az,amp)
-    buildingHull = convexHull2D(buildingPointsGround)
+for buildingHull in hulls:
+    #print(i)
+    #buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+    #buildingPointsGround = pointsForHull(buildingPoints,az,amp)
+    #buildingHull = convexHull2D(buildingPointsGround)
     lasNotShade = inFacade(lasNotShade,buildingHull)
     i+=1
-    
-print(lasNotShade)
-
 
 lasShadeFacade = lasNotShade[lasNotShade['inFacade'] == 1]
 lasShadeRoad = lasNotShade[lasNotShade['inFacade'] == 0]
 
+print('las shading road')
+print(lasShadeRoad)
+print('las in shade')
+print(lasInShade)
+print('las shading facade')
+print(lasShadeFacade)
+
 plt.scatter(lasShadeRoad['X'],lasShadeRoad['Y'],marker="o",s=4,c=lasShadeRoad['Z'],cmap='summer')
 plt.scatter(lasInShade['X'],lasInShade['Y'],marker="o",s=4,c=lasInShade['Z'],cmap='bone')
-plt.scatter(lasShadeFacade['X'],lasShadeFacade['Y'],marker="o",s=4,c=lasShadeFacade['Z'],cmap='GnBu')
+plt.scatter(lasShadeFacade['X'],lasShadeFacade['Y'],marker="o",s=4,c=lasShadeFacade['Z'],cmap='pink')
 
 plt.show()
 
 
 
-
-
-
+print('Started processing at ' + startTime)
+endTime = str(datetime.datetime.now())
+print('Finished processing at ' + endTime)
 
 
 
