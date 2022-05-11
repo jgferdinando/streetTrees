@@ -137,7 +137,7 @@ def projectToGroundY(point,az,amp):
 def pointsForHull(points,az,amp):
     groundPointList = []
     for point in points:
-        point[0],point[1] = convertLatLon(point[1],point[0])
+        #point[0],point[1] = convertLatLon(point[1],point[0])
         groundPointList.append([point[0],point[1]])
         groundPoint = projectToGround(point,az,amp)
         groundPointList.append([groundPoint[0],groundPoint[1]])    
@@ -307,13 +307,10 @@ def lasProcess(iterator):
 
     lasShadeFacade = lasNotShade[lasNotShade['inFacade'] == 1]
     lasShadeRoad = lasNotShade[lasNotShade['inFacade'] == 0]
-
-    print('las shading road')
-    print(lasShadeRoad)
-    print('las in shade')
-    print(lasInShade)
-    print('las shading facade')
-    print(lasShadeFacade)
+    
+    lasShadeRoad = lasShadeRoad[['X','Y','Z','intens','groundX','groundY']]
+    lasInShade = lasInShade[['X','Y','Z','intens','groundX','groundY']]
+    lasShadeFacade = lasShadeFacade[['X','Y','Z','intens','groundX','groundY']]
     
     lasShadeRoad.to_csv('shadeShadingShadedDataframes/{}_{}_{}_shadingGround.csv'.format(lasTileNumber,az,amp))
     lasInShade.to_csv('shadeShadingShadedDataframes/{}_{}_{}_inShade.csv'.format(lasTileNumber,az,amp))
@@ -331,23 +328,171 @@ startTime = str(datetime.datetime.now())
 
 
 lasdf25252buildingPoints,lasdf25252 = lasPreprocess('25252')
-#lasdf32187buildingPoints,lasdf32187 = lasPreprocess('32187')
-#lasdf987180buildingPoints,lasdf987180 = lasPreprocess('987180')
+lasdf32187buildingPoints,lasdf32187 = lasPreprocess('32187')
+lasdf987180buildingPoints,lasdf987180 = lasPreprocess('987180')
 
 print('Preprocessing done')
 
 #
 
+# https://gml.noaa.gov/grad/solcalc/azel.html
+
 iterators = [
-    #[lasdf25252,'25252',90,38], #Summer Solstice: 2022 06 21, 0800
-    #[lasdf25252,'25252',101,49],  #Summer Solstice: 2022 06 21, 0900
-    #[lasdf25252,'25252',116,60],  #Summer Solstice: 2022 06 21, 1000
+    
+    [lasdf25252,'25252',90,38], #Summer Solstice: 2022 06 21, 0800
+    [lasdf25252,'25252',101,49],  #Summer Solstice: 2022 06 21, 0900
+    [lasdf25252,'25252',116,60],  #Summer Solstice: 2022 06 21, 1000
     [lasdf25252,'25252',140,69],  #Summer Solstice: 2022 06 21, 1100
     [lasdf25252,'25252',182,73],  #Summer Solstice: 2022 06 21, 1200
-    [lasdf25252,'25252',222,68]#,  #Summer Solstice: 2022 06 21, 1300
-    #[lasdf25252,'25252',245,59],  #Summer Solstice: 2022 06 21, 1400
-    #[lasdf25252,'25252',260,48],  #Summer Solstice: 2022 06 21, 1500
-    #[lasdf25252,'25252',270,37]  #Summer Solstice: 2022 06 21, 1600
+    [lasdf25252,'25252',222,68],  #Summer Solstice: 2022 06 21, 1300
+    [lasdf25252,'25252',245,59],  #Summer Solstice: 2022 06 21, 1400
+    [lasdf25252,'25252',260,48],  #Summer Solstice: 2022 06 21, 1500
+    [lasdf25252,'25252',270,37],  #Summer Solstice: 2022 06 21, 1600
+    
+    [lasdf25252,'25252',97,33],  # 2022 08 07, 0800
+    [lasdf25252,'25252',108,44],  # 2022 08 07, 0900
+    [lasdf25252,'25252',124,54],  # 2022 08 07, 1000
+    [lasdf25252,'25252',147,62],  # 2022 08 07, 1100
+    [lasdf25252,'25252',179,66],  # 2022 08 07, 1200
+    [lasdf25252,'25252',211,63],  # 2022 08 07, 1300
+    [lasdf25252,'25252',235,55],  # 2022 08 07, 1400
+    [lasdf25252,'25252',251,45],  # 2022 08 07, 1500
+    [lasdf25252,'25252',263,33],  # 2022 08 07, 1600
+    
+    [lasdf25252,'25252',113,24], #Autumn Equinox: 2022 09 22, 0800
+    [lasdf25252,'25252',126,34],  #Autumn Equinox: 2022 09 22, 0900
+    [lasdf25252,'25252',142,43],  #Autumn Equinox: 2022 09 22, 1000
+    [lasdf25252,'25252',162,48],  #Autumn Equinox: 2022 09 22, 1100
+    [lasdf25252,'25252',184,49],  #Autumn Equinox: 2022 09 22, 1200
+    [lasdf25252,'25252',206,46],  #Autumn Equinox: 2022 09 22, 1300
+    [lasdf25252,'25252',225,40],  #Autumn Equinox: 2022 09 22, 1400
+    [lasdf25252,'25252',239,31],  #Autumn Equinox: 2022 09 22, 1500
+    [lasdf25252,'25252',252,20],  #Autumn Equinox: 2022 09 22, 1600
+    
+    [lasdf25252,'25252',126,14],  # 2022 11 07, 0800
+    [lasdf25252,'25252',138,22],  # 2022 11 07, 0900
+    [lasdf25252,'25252',153,28],  # 2022 11 07, 1000
+    [lasdf25252,'25252',169,32],  # 2022 11 07, 1100
+    [lasdf25252,'25252',186,33],  # 2022 11 07, 1200
+    [lasdf25252,'25252',202,30],  # 2022 11 07, 1300
+    [lasdf25252,'25252',217,24],  # 2022 11 07, 1400
+    [lasdf25252,'25252',230,16],  # 2022 11 07, 1500
+    [lasdf25252,'25252',241,7],  # 2022 11 07, 1600
+    
+    [lasdf25252,'25252',128,6], #Winter Solstice: 2022 12 21, 0800
+    [lasdf25252,'25252',139,14],  #Winter Solstice: 2022 12 21, 0900
+    [lasdf25252,'25252',152,21],  #Winter Solstice: 2022 12 21, 1000
+    [lasdf25252,'25252',166,25],  #Winter Solstice: 2022 12 21, 1100
+    [lasdf25252,'25252',181,26],  #Winter Solstice: 2022 12 21, 1200
+    [lasdf25252,'25252',197,24],  #Winter Solstice: 2022 12 21, 1300
+    [lasdf25252,'25252',211,20],  #Winter Solstice: 2022 12 21, 1400
+    [lasdf25252,'25252',223,13],  #Winter Solstice: 2022 12 21, 1500
+    [lasdf25252,'25252',234,4],  #Winter Solstice: 2022 12 21, 1600
+    
+    #
+    
+    [lasdf32187,'32187',90,38], #Summer Solstice: 2022 06 21, 0800
+    [lasdf32187,'32187',101,49],  #Summer Solstice: 2022 06 21, 0900
+    [lasdf32187,'32187',116,60],  #Summer Solstice: 2022 06 21, 1000
+    [lasdf32187,'32187',140,69],  #Summer Solstice: 2022 06 21, 1100
+    [lasdf32187,'32187',182,73],  #Summer Solstice: 2022 06 21, 1200
+    [lasdf32187,'32187',222,68],  #Summer Solstice: 2022 06 21, 1300
+    [lasdf32187,'32187',245,59],  #Summer Solstice: 2022 06 21, 1400
+    [lasdf32187,'32187',260,48],  #Summer Solstice: 2022 06 21, 1500
+    [lasdf32187,'32187',270,37],  #Summer Solstice: 2022 06 21, 1600
+    
+    [lasdf32187,'32187',97,33],  # 2022 08 07, 0800
+    [lasdf32187,'32187',108,44],  # 2022 08 07, 0900
+    [lasdf32187,'32187',124,54],  # 2022 08 07, 1000
+    [lasdf32187,'32187',147,62],  # 2022 08 07, 1100
+    [lasdf32187,'32187',179,66],  # 2022 08 07, 1200
+    [lasdf32187,'32187',211,63],  # 2022 08 07, 1300
+    [lasdf32187,'32187',235,55],  # 2022 08 07, 1400
+    [lasdf32187,'32187',251,45],  # 2022 08 07, 1500
+    [lasdf32187,'32187',263,33],  # 2022 08 07, 1600
+    
+    [lasdf32187,'32187',113,24], #Autumn Equinox: 2022 09 22, 0800
+    [lasdf32187,'32187',126,34],  #Autumn Equinox: 2022 09 22, 0900
+    [lasdf32187,'32187',142,43],  #Autumn Equinox: 2022 09 22, 1000
+    [lasdf32187,'32187',162,48],  #Autumn Equinox: 2022 09 22, 1100
+    [lasdf32187,'32187',184,49],  #Autumn Equinox: 2022 09 22, 1200
+    [lasdf32187,'32187',206,46],  #Autumn Equinox: 2022 09 22, 1300
+    [lasdf32187,'32187',225,40],  #Autumn Equinox: 2022 09 22, 1400
+    [lasdf32187,'32187',239,31],  #Autumn Equinox: 2022 09 22, 1500
+    [lasdf32187,'32187',252,20],  #Autumn Equinox: 2022 09 22, 1600
+    
+    [lasdf32187,'32187',126,14],  # 2022 11 07, 0800
+    [lasdf32187,'32187',138,22],  # 2022 11 07, 0900
+    [lasdf32187,'32187',153,28],  # 2022 11 07, 1000
+    [lasdf32187,'32187',169,32],  # 2022 11 07, 1100
+    [lasdf32187,'32187',186,33],  # 2022 11 07, 1200
+    [lasdf32187,'32187',202,30],  # 2022 11 07, 1300
+    [lasdf32187,'32187',217,24],  # 2022 11 07, 1400
+    [lasdf32187,'32187',230,16],  # 2022 11 07, 1500
+    [lasdf32187,'32187',241,7],  # 2022 11 07, 1600
+    
+    [lasdf32187,'32187',128,6], #Winter Solstice: 2022 12 21, 0800
+    [lasdf32187,'32187',139,14],  #Winter Solstice: 2022 12 21, 0900
+    [lasdf32187,'32187',152,21],  #Winter Solstice: 2022 12 21, 1000
+    [lasdf32187,'32187',166,25],  #Winter Solstice: 2022 12 21, 1100
+    [lasdf32187,'32187',181,26],  #Winter Solstice: 2022 12 21, 1200
+    [lasdf32187,'32187',197,24],  #Winter Solstice: 2022 12 21, 1300
+    [lasdf32187,'32187',211,20],  #Winter Solstice: 2022 12 21, 1400
+    [lasdf32187,'32187',223,13],  #Winter Solstice: 2022 12 21, 1500
+    [lasdf32187,'32187',234,4],  #Winter Solstice: 2022 12 21, 1600
+    
+    #
+    
+    [lasdf987180,'987180',90,38], #Summer Solstice: 2022 06 21, 0800
+    [lasdf987180,'987180',101,49],  #Summer Solstice: 2022 06 21, 0900
+    [lasdf987180,'987180',116,60],  #Summer Solstice: 2022 06 21, 1000
+    [lasdf987180,'987180',140,69],  #Summer Solstice: 2022 06 21, 1100
+    [lasdf987180,'987180',182,73],  #Summer Solstice: 2022 06 21, 1200
+    [lasdf987180,'987180',222,68],  #Summer Solstice: 2022 06 21, 1300
+    [lasdf987180,'987180',245,59],  #Summer Solstice: 2022 06 21, 1400
+    [lasdf987180,'987180',260,48],  #Summer Solstice: 2022 06 21, 1500
+    [lasdf987180,'987180',270,37],  #Summer Solstice: 2022 06 21, 1600
+    
+    [lasdf987180,'987180',97,33],  # 2022 08 07, 0800
+    [lasdf987180,'987180',108,44],  # 2022 08 07, 0900
+    [lasdf987180,'987180',124,54],  # 2022 08 07, 1000
+    [lasdf987180,'987180',147,62],  # 2022 08 07, 1100
+    [lasdf987180,'987180',179,66],  # 2022 08 07, 1200
+    [lasdf987180,'987180',211,63],  # 2022 08 07, 1300
+    [lasdf987180,'987180',235,55],  # 2022 08 07, 1400
+    [lasdf987180,'987180',251,45],  # 2022 08 07, 1500
+    [lasdf987180,'987180',263,33],  # 2022 08 07, 1600
+    
+    [lasdf987180,'987180',113,24], #Autumn Equinox: 2022 09 22, 0800
+    [lasdf987180,'987180',126,34],  #Autumn Equinox: 2022 09 22, 0900
+    [lasdf987180,'987180',142,43],  #Autumn Equinox: 2022 09 22, 1000
+    [lasdf987180,'987180',162,48],  #Autumn Equinox: 2022 09 22, 1100
+    [lasdf987180,'987180',184,49],  #Autumn Equinox: 2022 09 22, 1200
+    [lasdf987180,'987180',206,46],  #Autumn Equinox: 2022 09 22, 1300
+    [lasdf987180,'987180',225,40],  #Autumn Equinox: 2022 09 22, 1400
+    [lasdf987180,'987180',239,31],  #Autumn Equinox: 2022 09 22, 1500
+    [lasdf987180,'987180',252,20],  #Autumn Equinox: 2022 09 22, 1600
+    
+    [lasdf987180,'987180',126,14],  # 2022 11 07, 0800
+    [lasdf987180,'987180',138,22],  # 2022 11 07, 0900
+    [lasdf987180,'987180',153,28],  # 2022 11 07, 1000
+    [lasdf987180,'987180',169,32],  # 2022 11 07, 1100
+    [lasdf987180,'987180',186,33],  # 2022 11 07, 1200
+    [lasdf987180,'987180',202,30],  # 2022 11 07, 1300
+    [lasdf987180,'987180',217,24],  # 2022 11 07, 1400
+    [lasdf987180,'987180',230,16],  # 2022 11 07, 1500
+    [lasdf987180,'987180',241,7],  # 2022 11 07, 1600
+    
+    [lasdf987180,'987180',128,6], #Winter Solstice: 2022 12 21, 0800
+    [lasdf987180,'987180',139,14],  #Winter Solstice: 2022 12 21, 0900
+    [lasdf987180,'987180',152,21],  #Winter Solstice: 2022 12 21, 1000
+    [lasdf987180,'987180',166,25],  #Winter Solstice: 2022 12 21, 1100
+    [lasdf987180,'987180',181,26],  #Winter Solstice: 2022 12 21, 1200
+    [lasdf987180,'987180',197,24],  #Winter Solstice: 2022 12 21, 1300
+    [lasdf987180,'987180',211,20],  #Winter Solstice: 2022 12 21, 1400
+    [lasdf987180,'987180',223,13],  #Winter Solstice: 2022 12 21, 1500
+    [lasdf987180,'987180',234,4]  #Winter Solstice: 2022 12 21, 1600
+    
     ]
 
 
