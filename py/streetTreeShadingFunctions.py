@@ -109,7 +109,6 @@ def projectToGround(point,az,amp):
         pointGroundZ =  point[2] * 0
         return pointGroundX,pointGroundY,pointGroundZ
     else: 
-        print('bad Z')
         return point[0],point[1],1.0
 
 #
