@@ -48,7 +48,7 @@
 			console.log(sp);
 
 			// TREE LIST JSONS GO HERE ///////////////////////////////////////////////////////////
-			var csvpath = ' https://tree-folio.s3.amazonaws.com/folio/folio/'.concat(zip,'/',zip,'/',sp,'/trees.json');
+			var csvpath = ' ./folio/folio/'.concat(zip,'/',zip,'/',sp,'/trees.json'); //original absolute path: https://tree-folio.s3.amazonaws.com
 			
 			jQuery.when(jQuery.getJSON(csvpath)).done( function(trees) {
 
