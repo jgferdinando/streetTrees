@@ -32,34 +32,31 @@ map.on('load', function() {
 
 	modal.style.display = "block";
 	
+	//set sources for the five borough files of trees
 	map.addSource('treesBronx', { type: 'geojson', 
 		cluster: true,
 		clusterMaxZoom: 15,
 		clusterRadius: 75,
 		data: './data/geojson/bronx.geojson'
 		});
-
 	map.addSource('treesBrooklyn', { type: 'geojson', 
 		cluster: true,
 		clusterMaxZoom: 15,
 		clusterRadius: 75,
 		data: './data/geojson/brooklyn.geojson'
 		});
-
 	map.addSource('treesManhattan', { type: 'geojson', 
 		cluster: true,
 		clusterMaxZoom: 15,
 		clusterRadius: 75,
 		data: './data/geojson/manhattan.geojson'
 		});
-
 	map.addSource('treesQueens', { type: 'geojson', 
 		cluster: true,
 		clusterMaxZoom: 15,
 		clusterRadius: 75,
 		data: './data/geojson/queens.geojson'
 		});
-
 	map.addSource('treesStaten', { type: 'geojson', 
 		cluster: true,
 		clusterMaxZoom: 15,
@@ -67,7 +64,7 @@ map.on('load', function() {
 		data: './data/geojson/staten.geojson'
 		});
 
-
+	//use the Mapbox provided 3d building layer but set custom symbology
   	map.addLayer(
 		{
 		'id': '3d-buildings',
@@ -102,6 +99,7 @@ map.on('load', function() {
 			}
 		);
 
+	//set style for tree point clustering at higher zoom levels
   	function treeCluster(treeSource,layerid) {
 		map.addLayer(
 			{
@@ -134,12 +132,14 @@ map.on('load', function() {
 			});
 		};
 
+	//add layers to viewer in cluster style
 	treeCluster('treesBronx','bronxClusters');
 	treeCluster('treesBrooklyn','brooklynClusters');
 	treeCluster('treesManhattan','manhattanClusters');
 	treeCluster('treesQueens','queensClusters');
 	treeCluster('treesStaten','statenClusters');
 
+	//define symbology for tree points
 	function treePoints(treeSource,layerid) {
 		map.addLayer({
 			'id': layerid,
@@ -182,14 +182,14 @@ map.on('load', function() {
 			});
 		};
 
+	//add layers in individual point view
 	treePoints('treesBronx','bronxPoints');
 	treePoints('treesBrooklyn','brooklynPoints');
 	treePoints('treesManhattan','manhattanPoints');
 	treePoints('treesQueens','queensPoints');
 	treePoints('treesStaten','statenPoints');
 
-
-
+	//set mouseover to show points are clickable
 	map.on('mouseenter', 'bronxPoints', function(e) {
 		map.getCanvas().style.cursor = 'pointer';
 		});
@@ -206,7 +206,6 @@ map.on('load', function() {
 		map.getCanvas().style.cursor = 'pointer';
 		});
 
-	
 	map.on('mouseleave', 'bronxPoints', function() {
 		map.getCanvas().style.cursor = '';
 		});
@@ -223,13 +222,13 @@ map.on('load', function() {
 		map.getCanvas().style.cursor = '';
 		});
 
-
+	//open global variables
 	var treeID;
 	var treeLat;
 	var treeLon;
 
 	function shadow(zipcode,species,treeID,treeLat,treeLon,az,amp,darkness,name,bool) {
-
+		//build paths to tree point cloud
 		var pointCloudFile = ' https://tree-folio.s3.amazonaws.com/folio/folio/';
 		var pointCloudFile = pointCloudFile.concat(zipcode);
 		var pointCloudFile = pointCloudFile.concat('/');
@@ -241,17 +240,16 @@ map.on('load', function() {
 		var pointCloudFile = pointCloudFile.concat('.json');
 
 		var shadow = 'shadow'.concat(treeID);
-
+		//math to project point cloud to ground to create shadows
 		var az = parseInt(az);
 		var amp = parseInt(amp);
-
 		var sinAz = Math.sin((az) * Math.PI / 180);
 		var cosAz = Math.cos((az) * Math.PI / 180);
 		var tanAz = Math.tan((az) * Math.PI / 180);
 		var sinAmp = Math.sin((amp-90) * Math.PI / 180);
 		var cosAmp = Math.cos((amp-90) * Math.PI / 180);
 		var tanAmp = Math.tan((-amp) * Math.PI / 180);
-
+		//name each shadow layer uniquely so it does not comflict
 		var name = 'shadow'.concat(name);
 
 		map.addLayer(new MapboxLayer({
@@ -269,9 +267,9 @@ map.on('load', function() {
 	    	}));
 
 		};
-
+	//action on tree point click
 	function clickTree(e) {
-
+		//clear any existing point cloud and shadow from the map
 		map.removeLayer('tree');
 
 		map.removeLayer('shadow1');
@@ -289,16 +287,14 @@ map.on('load', function() {
 		map.removeLayer('shadow13');
 		map.removeLayer('shadow14');
 		map.removeLayer('shadow15');
-
+		//retrieve tree attributes
 		treeID = e.features[0].properties['tree_id'];
-
 		treeLat = e.features[0].properties['Latitude'];
 		treeLat = parseFloat(treeLat);
 		document.getElementById("lat").innerHTML = treeLat;
 		treeLon = e.features[0].properties['longitude'];
 		treeLon = parseFloat(treeLon);
 		document.getElementById("lon").innerHTML = treeLon;
-
 		var zipcode = e.features[0].properties['zipcode'];
 		document.getElementById("zipcode").innerHTML = zipcode;
 		var species = e.features[0].properties['spc_common'];
@@ -314,7 +310,7 @@ map.on('load', function() {
 		var pointCloudFile = pointCloudFile.concat('/');
 		var pointCloudFile = pointCloudFile.concat(treeID);
 		var pointCloudFile = pointCloudFile.concat('.json');
-
+		//add the selected tree point cloud layer 
 		map.addLayer(new MapboxLayer({
 	    	id: 'tree',
 	    	type: PointCloudLayer,
@@ -328,14 +324,14 @@ map.on('load', function() {
 	    	opacity: 0.75,
 	    	visible: true
 	    	}));
-
+		//if a shadow selection is active, create a shadow for each hour of the day
 		var hours = positions[parseInt(document.getElementById('pickedSeason').value)];
 		for (let hour of hours) {
 			shadow(zipcode,species,treeID,treeLat,treeLon,hour[0],hour[1],hour[2],hour[3],hour[4]);
 			};
-		
+		//set up appropriate link-out URL with parameters to inform the "folio" page built on request
 		var link =  'https://designacrossscales.org/public_test/html/folio.html?zipcode='.concat(zipcode,'&species=',species);
-
+		//update the overlay into
 		document.getElementById("common").setAttribute("href", link);  
 		document.getElementById("latin").innerHTML = e.features[0].properties['spc_latin'];
 		document.getElementById("address").innerHTML = e.features[0].properties['address'];
@@ -349,7 +345,7 @@ map.on('load', function() {
 		document.getElementById("canopy").innerHTML = expected;
 
 		/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-		//parse xyz json to get tree stats
+		//parse xyz json to get tree stats, to update parameters in the html overlay
 
 		jQuery.when(jQuery.getJSON(pointCloudFile)).done( function(treeTable) {
 			//console.log(treeTable);
@@ -385,7 +381,7 @@ map.on('load', function() {
 
 
 
-
+	//set tree selection action on click for all 5 borough layers
 	map.on('click', 'bronxPoints', function(e) {
 		clickTree(e);
 		}); 
@@ -408,7 +404,7 @@ map.on('load', function() {
 
 
 
-	
+	//change shadow when changed in the dropdown 
 	document.getElementById('pickedSeason').addEventListener('change', function(f) {
 		map.removeLayer('shadow1');
 		map.removeLayer('shadow2');
@@ -436,7 +432,7 @@ map.on('load', function() {
 			};
 		});
 
-
+	//parameters array to create shadows. Could perhaps be done programatically? 
 	var positions = [
 					[
 						[63,5,0.3,'1',true],
