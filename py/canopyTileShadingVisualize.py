@@ -6,6 +6,8 @@ Created on Thu May 12 12:23:38 2022
 @author: joe
 """
 
+# this script can be used to create images from the shading function scripts
+
 import pandas as pd
 import matplotlib.pyplot as plt
 
