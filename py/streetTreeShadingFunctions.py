@@ -375,7 +375,21 @@ def convexHull2D(points):
 
 #
 
-def inBuilding(points, hull):      
+def inBuilding(points, hull):   
+    '''
+    Parameters
+    ----------
+    points : Pandas Dataframe
+        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
+    groundPointList : Hull object
+        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
+    
+    Returns
+    -------
+    points : Pandas Dataframe
+        DESCRIPTION. Points of a point cloud projected on to the ground plane inside a hull. 
+        Used for checking if a point is likely to be a facade feature, for example a fire escape, so it can be dropped from the dataframe. 
+    '''
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -389,6 +403,22 @@ def inBuilding(points, hull):
 #
 
 def inShadow(points, hull):    
+    '''
+    Parameters
+    ----------
+    points : Pandas Dataframe
+        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
+    groundPointList : Hull object
+        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
+    
+    Returns
+    -------
+    points : Pandas Dataframe
+        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
+        Adds flag for falling inside or outside the hull of a building, representing if a point is being shaded by a building. 
+        Supercedes all other conditions/flags.
+        The X,Y  point must fall inside the hull of a building's footprint + shadow, both "in the air" and projected onto the ground. 
+    '''
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -403,6 +433,21 @@ def inShadow(points, hull):
 #
 
 def inFacade(points, hull):
+    '''
+    Parameters
+    ----------
+    points : Pandas Dataframe
+        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
+    groundPointList : Hull object
+        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
+    
+    Returns
+    -------
+    points : Pandas Dataframe
+        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
+        Adds flag for falling inside or outside the hull of a building, representing if a point is shading a facade. 
+        Defers to the "in shadow" condition/flag.
+    '''
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -417,7 +462,29 @@ def inFacade(points, hull):
 #
 
 def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
+    '''
     
+    Parameters
+    ----------
+    features : LIST
+        DESCRIPTION. GeoJSON polygons.
+    xMin : FLOAT
+        DESCRIPTION. Smallest cartesian X coordinate in the state plane system.
+    xMax : FLOAT
+        DESCRIPTION. Largest cartesian X coordinate in the state plane system.
+    yMin : FLOAT
+        DESCRIPTION. Smallest cartesian Y coordinate in the state plane system.
+    yMax : FLOAT
+        DESCRIPTION. Largest cartesian Y coordinate in the state plane system.
+    yMax : STRING
+        DESCRIPTION. Flag to trigger converting to state plane if provided coordinates are lat/lon. 'latLon' triggers reprojection.
+
+    Returns
+    -------
+    features2 : LIST
+        DESCRIPTION. Polygon features whose centroids fell inside the bounding box.
+    
+    '''
     features2 = []
     
     for feature in features[:]:
@@ -427,6 +494,7 @@ def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
         for buildingPoint in buildingPoints:
             xs.append(buildingPoint[0])
             ys.append(buildingPoint[1])
+        # average to find centroid of polygon
         xCenter = sum(xs)/len(xs)
         yCenter = sum(ys)/len(ys)
         
@@ -445,9 +513,24 @@ def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
 
 #
 
-def removeBuildingsFromLas(buildingsBufferedPaath,lasdf):
+def removeBuildingsFromLas(buildingsBufferedPath,lasdf):
+    '''
+    Parameters
+    ----------
+    buildingsBufferedPath : STRING
+        DESCRIPTION. File path to a GeoJSON containing buffered building footprints.
+    lasdf : Pandas Dataframe
+        DESCRIPTION. Dataframe containing las point cloud data.
+    
+    Returns
+    -------
+    lasBuildings : Pandas Dataframe
+        DESCRIPTION. Las point cloud dataframe that represent building features.
+    lasdf : Pandas Dataframe
+        DESCRIPTION. Dataframe containing las point cloud data with building features excluded.
+    '''
     #buffered buildings currently use state plane coordinates for their vertices 
-    featuresBuffered = readGeoJSON(buildingsBufferedPaath)
+    featuresBuffered = readGeoJSON(buildingsBufferedPath)
 
     for feature in featuresBuffered:
         buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
@@ -464,25 +547,49 @@ def removeBuildingsFromLas(buildingsBufferedPaath,lasdf):
 #
 
 def lasPreprocess(lasTileNumber):
+    '''
+    Parameters
+    ----------
+    buildingsBufferedPath : INT
+        DESCRIPTION. Number identifier of a lidar tile.
+    
+    Returns
+    -------
+    lasBuildings : Pandas Dataframe
+        DESCRIPTION. Las point cloud dataframe that represent building features.
+    lasdf : Pandas Dataframe
+        DESCRIPTION. Dataframe containing las point cloud data with building features excluded.
+    '''
     lasdf = processLas('las/{}.las'.format(lasTileNumber))
     lasdf = lasdf.dropna()
-
     groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
-
     lasdf = lasDFcanopy(lasdf)
-
     lasdf['Z'] = lasdf['Z'] - groundElevation
-
     lasdf = lasdf[ lasdf['Z'] < 1000 ]
-
     lasdf['temp'] = 0
     lasdf['inBuilding'] = 0
-        
+    # requires a geojson file of building footprints that have already been buffered, and selected down to the buildings that fall inside the tile. 
     lasBuildings, lasdf =  removeBuildingsFromLas('buildings/buildingsTile{}buffered.geojson'.format(lasTileNumber),lasdf)
-    
     return lasBuildings, lasdf
 
+#
+
 def lasProcess(iterator):
+    '''
+    Parameters
+    ----------
+    buildingsBufferedPath : LIST
+        DESCRIPTION. A set of parameters in the sequence:
+        [pointer to las dataframe, number for las tile, sun azimuth, sun amplitude, string representing datetime].
+    
+    Returns
+    -------
+    lasBuildings : Pandas Dataframe
+        DESCRIPTION. Las point cloud dataframe that represent building features.
+    lasdf : Pandas Dataframe
+        DESCRIPTION. Dataframe containing las point cloud data with building features excluded.
+    '''
+    #wrapper function for multiprocessing
     #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
     lasdf = iterator[0]
     lasTileNumber = iterator[1]
@@ -548,8 +655,9 @@ print('Preprocessing done')
 
 #
 
-# https://gml.noaa.gov/grad/solcalc/azel.html
+# used to find sun angles, this could probably be done programatically: https://gml.noaa.gov/grad/solcalc/azel.html
 
+# these iterator combos could also probably be generated programatically...
 iterators = [
     
     [lasdf25252,'25252',90,38,'2022_06_21_0800'], #Summer Solstice: '2022_06_21_0800'
