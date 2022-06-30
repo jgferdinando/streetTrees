@@ -39,7 +39,7 @@ def getLazFile(lazfilename):
 #
 
 #can be copied from Google Maps...
-lat,lon = 40.68589349531872, -73.98824172255344
+lat,lon = 40.68569409821998, -73.98782434876196
 x,y = convertLatLon(lat,lon)
 
 s3 = boto3.resource('s3', config=Config(signature_version=UNSIGNED))
@@ -90,7 +90,7 @@ print(lidar_df)
 lidar_df = lidar_df[lidar_df['Z'] > 0]
 lidar_df = lidar_df[lidar_df['Z'] < 30]
 
-boxSize = 400
+boxSize = 500
 
 lidar_df = lidar_df[lidar_df['X'] <= x + boxSize/2 ]
 lidar_df = lidar_df[lidar_df['X'] >= x - boxSize/2 ]
