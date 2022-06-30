@@ -64,7 +64,7 @@ def stackTiles(lat,lon, boxSize=100):
     
     lidar_df = getLazFile('laz_{}/0-0-0-0.laz'.format(prefix))
             
-    for depth in range(1,11):
+    for depth in range(1,10):
         binx = int( (locatorx * 2 ** ( depth ) ) // 1 ) 
         biny = int( (locatory * 2 ** ( depth ) ) // 1 ) 
         lazfile = prefix + 'ept-data/{}-{}-{}-'.format(depth,binx,biny)
@@ -77,10 +77,16 @@ def stackTiles(lat,lon, boxSize=100):
             else: 
                 pass
             lidar_df2 = getLazFile('laz_{}/{}'.format(prefix,lazfilename))
+            if depth > 7:
+                low = lidar_df2['Z'].mean() - lidar_df2['Z'].std()*5
+                high = lidar_df2['Z'].mean() + lidar_df2['Z'].std()*10
+            else:
+                low = 0
+                high = 1000
             lidar_df = pd.concat([lidar_df,lidar_df2])
                     
-    lidar_df = lidar_df[lidar_df['Z'] > 0]
-    lidar_df = lidar_df[lidar_df['Z'] < 30]
+    lidar_df = lidar_df[lidar_df['Z'] > low ]
+    lidar_df = lidar_df[lidar_df['Z'] < high ]
     lidar_df = lidar_df[lidar_df['X'] <= x + boxSize/2 ]
     lidar_df = lidar_df[lidar_df['X'] >= x - boxSize/2 ]
     lidar_df = lidar_df[lidar_df['Y'] <= y + boxSize/2 ]
@@ -89,8 +95,7 @@ def stackTiles(lat,lon, boxSize=100):
 
 ###############################################################################
 
-lat = 40.68569409821998
-lon = -73.98782434876196
+lat, lon = 40.68980473408559, -73.94665419805024
 boxSize = 500
 
 lidar_df = stackTiles(lat,lon,boxSize)
