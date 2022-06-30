@@ -20,7 +20,6 @@ import os
 #
 
 def convertLatLon(lat,lon,epsgNumber):
-    #uses the coodinate system that the Entwine Point Tiles are provided in
     transformer = Transformer.from_crs( "epsg:4326", "epsg:{}".format(epsgNumber) ) 
     x, y = transformer.transform(lat, lon)
     return x, y
@@ -36,13 +35,10 @@ def getLazFile(lazfilename):
         lidarDF['Z'] = lidarDF['Z'] * lz.header.scales[2] + lz.header.offsets[2]
     return lidarDF
 
-def stackTiles(lat,lon):
-
+def stackTiles(lat,lon, boxSize=100):
     s3 = boto3.resource('s3', config=Config(signature_version=UNSIGNED))
     bucket = s3.Bucket('usgs-lidar-public')
-    
     prefix = 'NY_NewYorkCity/'
-    
     for obj in bucket.objects.filter(Prefix= prefix + 'ept.json'):
         key = obj.key
         body = obj.get()['Body']
@@ -56,49 +52,52 @@ def stackTiles(lat,lon):
     locatory = ( y - ymin ) / ( ymax - ymin )
     
     try:
-        os.mkdir('laz/')
+        os.mkdir('laz_{}/'.format(prefix))
     except:
         pass
     
     # download highest level laz for entire extent
-    lazfile = bucket.download_file(prefix + 'ept-data/0-0-0-0.laz','laz/0-0-0-0.laz')
-    lidar_df = getLazFile('laz/0-0-0-0.laz')
+    if os.path.exists('laz_{}/0-0-0-0.laz'.format(prefix)) == False:
+        lazfile = bucket.download_file(prefix + 'ept-data/0-0-0-0.laz','laz_{}/0-0-0-0.laz'.format(prefix))
+    else: 
+        pass
+    
+    lidar_df = getLazFile('laz_{}/0-0-0-0.laz'.format(prefix))
             
     for depth in range(1,11):
         binx = int( (locatorx * 2 ** ( depth ) ) // 1 ) 
         biny = int( (locatory * 2 ** ( depth ) ) // 1 ) 
-    
         lazfile = prefix + 'ept-data/{}-{}-{}-'.format(depth,binx,biny)
         for obj in bucket.objects.filter(Prefix = lazfile ):
             key = obj.key
             lazfilename = key.split('/')[2]
             # download subsequent laz files and concat 
-            if os.path.exists('laz/'+lazfilename) == False:
-                lazfile = bucket.download_file(prefix + 'ept-data/'+lazfilename,'laz/'+lazfilename)
+            if os.path.exists('laz_{}/{}'.format(prefix,lazfilename)) == False:
+                lazfile = bucket.download_file(prefix + 'ept-data/'+lazfilename,'laz_{}/{}'.format(prefix,lazfilename))
             else: 
                 pass
-            lidar_df2 = getLazFile('laz/'+lazfilename)
+            lidar_df2 = getLazFile('laz_{}/{}'.format(prefix,lazfilename))
             lidar_df = pd.concat([lidar_df,lidar_df2])
                     
     lidar_df = lidar_df[lidar_df['Z'] > 0]
     lidar_df = lidar_df[lidar_df['Z'] < 30]
-    
-    boxSize = 500
-    
     lidar_df = lidar_df[lidar_df['X'] <= x + boxSize/2 ]
     lidar_df = lidar_df[lidar_df['X'] >= x - boxSize/2 ]
     lidar_df = lidar_df[lidar_df['Y'] <= y + boxSize/2 ]
     lidar_df = lidar_df[lidar_df['Y'] >= y - boxSize/2 ]
-    
     return lidar_df
 
-###
+###############################################################################
 
-lidar_df = stackTiles(40.68569409821998, -73.98782434876196)
+lat = 40.68569409821998
+lon = -73.98782434876196
+boxSize = 500
+
+lidar_df = stackTiles(lat,lon,boxSize)
 
 fig = plt.figure(figsize=(12,12), dpi=300, constrained_layout=True)
 ax1 = fig.add_subplot(111, aspect='equal')
-ax1.scatter(lidar_df['X'],lidar_df['Y'],marker="+",s=0.01,c=lidar_df['Z'],cmap='bone')
+ax1.scatter(lidar_df['X'],lidar_df['Y'],marker="+",s=50/boxSize,c=lidar_df['Z'],cmap='bone')
 trees = lidar_df[lidar_df['number_of_returns'] - lidar_df['return_number'] > 0 ]
 ax1.scatter(trees['X'],trees['Y'],marker="+",s=0.01,c=trees['Z'],cmap='summer')
 
