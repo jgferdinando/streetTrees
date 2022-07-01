@@ -45,7 +45,7 @@ def stackTiles(lat,lon, boxSize=100):
         eptJson = json.load(body)
         epsgNumber = eptJson['srs']['horizontal']
         span = eptJson['span']
-        [xmin,ymin,zmin,xmax,ymax,zmax] = eptJson['boundsConforming']
+        [xmin,ymin,zmin,xmax,ymax,zmax] = eptJson['bounds']
       
     x,y = convertLatLon(lat,lon,epsgNumber)   
     locatorx = ( x - xmin ) / ( xmax - xmin ) 
@@ -95,8 +95,8 @@ def stackTiles(lat,lon, boxSize=100):
 
 ###############################################################################
 
-lat, lon = 40.68980473408559, -73.94665419805024
-boxSize = 500
+lat, lon = 40.68460082916135, -73.98666611483057
+boxSize = 300
 
 lidar_df = stackTiles(lat,lon,boxSize)
 
