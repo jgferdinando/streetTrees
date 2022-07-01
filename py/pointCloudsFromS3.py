@@ -38,7 +38,7 @@ def getLazFile(lazfilename):
 def stackTiles(lat,lon, boxSize=100):
     s3 = boto3.resource('s3', config=Config(signature_version=UNSIGNED))
     bucket = s3.Bucket('usgs-lidar-public')
-    prefix = 'NY_NewYorkCity/'
+    prefix = 'NY_FingerLakes_1_2020/' # 'NY_NewYorkCity/'
     for obj in bucket.objects.filter(Prefix= prefix + 'ept.json'):
         key = obj.key
         body = obj.get()['Body']
@@ -78,8 +78,8 @@ def stackTiles(lat,lon, boxSize=100):
                 pass
             lidar_df2 = getLazFile('laz_{}/{}'.format(prefix,lazfilename))
             if depth > 7:
-                low = lidar_df2['Z'].mean() - lidar_df2['Z'].std()*5
-                high = lidar_df2['Z'].mean() + lidar_df2['Z'].std()*10
+                low = lidar_df2['Z'].mean() - lidar_df2['Z'].std()*4
+                high = lidar_df2['Z'].mean() + lidar_df2['Z'].std()*8
             else:
                 low = 0
                 high = 1000
@@ -95,8 +95,8 @@ def stackTiles(lat,lon, boxSize=100):
 
 ###############################################################################
 
-lat, lon = 40.68460082916135, -73.98666611483057
-boxSize = 300
+lat, lon = 42.44388282145252, -76.48573793521436 # 40.68460082916135, -73.98666611483057
+boxSize = 1000
 
 lidar_df = stackTiles(lat,lon,boxSize)
 
