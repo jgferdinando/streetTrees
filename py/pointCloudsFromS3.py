@@ -49,6 +49,7 @@ def stackTiles(lat,lon, boxSize=100, prefix ='NY_NewYorkCity/'):  # 'NY_FingerLa
         
     
     '''
+    
     s3 = boto3.resource('s3', config=Config(signature_version=UNSIGNED))
     bucket = s3.Bucket('usgs-lidar-public')
     for obj in bucket.objects.filter(Prefix= prefix + 'ept.json'):
@@ -107,10 +108,10 @@ def stackTiles(lat,lon, boxSize=100, prefix ='NY_NewYorkCity/'):  # 'NY_FingerLa
 
 ###############################################################################
 
-# lat, lon =  40.68460082916135, -73.98666611483057 #  42.44388282145252, -76.48573793521436 #
-# boxSize = 100000
+# lat, lon = 42.44388282145252, -76.48573793521436 
+# boxSize = 100
 
-# lidar_df = stackTiles(lat,lon,boxSize)
+# lidar_df = stackTiles(lat,lon,boxSize,'NY_FingerLakes_1_2020/')
 
 # fig = plt.figure(figsize=(12,12), dpi=300, constrained_layout=True)
 # ax1 = fig.add_subplot(111, aspect='equal')
