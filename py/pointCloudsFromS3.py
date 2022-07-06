@@ -35,10 +35,22 @@ def getLazFile(lazfilename):
         lidarDF['Z'] = lidarDF['Z'] * lz.header.scales[2] + lz.header.offsets[2]
     return lidarDF
 
-def stackTiles(lat,lon, boxSize=100):
+def stackTiles(lat,lon, boxSize=100, prefix ='NY_NewYorkCity/'):  # 'NY_FingerLakes_1_2020/' #
+    '''
+    
+    Parameters:
+        lat : latitude centerpoint in WGS 1984 (EPSG 4326)
+        lon : longitude centerpoint in WGS 1984 (EPSG 4326)
+        boxSize : crop dimensions in X & Y units of source data, typically meters
+        prefix : S3 server directory name for public usgs lidar, for available servers: https://usgs.entwine.io/
+        
+    Returns:
+        lidar_df : Pandas dataframe containing selection of point cloud retrieved from S3 bucket
+        
+    
+    '''
     s3 = boto3.resource('s3', config=Config(signature_version=UNSIGNED))
     bucket = s3.Bucket('usgs-lidar-public')
-    prefix = 'NY_FingerLakes_1_2020/' # 'NY_NewYorkCity/'
     for obj in bucket.objects.filter(Prefix= prefix + 'ept.json'):
         key = obj.key
         body = obj.get()['Body']
@@ -95,15 +107,15 @@ def stackTiles(lat,lon, boxSize=100):
 
 ###############################################################################
 
-lat, lon = 42.44388282145252, -76.48573793521436 # 40.68460082916135, -73.98666611483057
-boxSize = 1000
+# lat, lon =  40.68460082916135, -73.98666611483057 #  42.44388282145252, -76.48573793521436 #
+# boxSize = 100000
 
-lidar_df = stackTiles(lat,lon,boxSize)
+# lidar_df = stackTiles(lat,lon,boxSize)
 
-fig = plt.figure(figsize=(12,12), dpi=300, constrained_layout=True)
-ax1 = fig.add_subplot(111, aspect='equal')
-ax1.scatter(lidar_df['X'],lidar_df['Y'],marker="+",s=50/boxSize,c=lidar_df['Z'],cmap='bone')
-trees = lidar_df[lidar_df['number_of_returns'] - lidar_df['return_number'] > 0 ]
-ax1.scatter(trees['X'],trees['Y'],marker="+",s=0.01,c=trees['Z'],cmap='summer')
+# fig = plt.figure(figsize=(12,12), dpi=300, constrained_layout=True)
+# ax1 = fig.add_subplot(111, aspect='equal')
+# ax1.scatter(lidar_df['X'],lidar_df['Y'],marker="+",s=50/boxSize,c=lidar_df['Z'],cmap='bone')
+# trees = lidar_df[lidar_df['number_of_returns'] - lidar_df['return_number'] > 0 ]
+# ax1.scatter(trees['X'],trees['Y'],marker="+",s=0.01,c=trees['Z'],cmap='summer')
 
 
