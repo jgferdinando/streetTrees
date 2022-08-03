@@ -25,19 +25,6 @@ from multiprocessing import Pool
 #
 
 def processLas(lasFileName):
-    '''
-    
-    Parameters
-    ----------
-    lasFileName : STRING
-        DESCRIPTION. String representing the file path of a .las point cloud file.
-
-    Returns
-    -------
-    lidar_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing coordinates and attributes of the lidar point cloud.
-    
-    '''
     if lasFileName.endswith('.las'):
         las = laspy.read(lasFileName)
         #point_format = las.point_format
@@ -54,48 +41,12 @@ def processLas(lasFileName):
 #
 
 def lasDFcanopy(lidar_df):
-    '''
-    
-    Parameters
-    ----------
-    lidar_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing coordinates and attributes of the lidar point cloud.
-
-    Returns
-    -------
-    lidar_canopy_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing coordinates and attributes of the lidar point cloud with one-of-one, and last of many returns removed.
-        This is a simple filter to drop solid objects and retain sparse objects such as leaves, branches, parts of the tree canopy; 
-        ...unintentionally may retain power lines, fire escapes. 
-    
-    '''
     lidar_canopy_df = lidar_df[( lidar_df['number_of_returns'] - lidar_df['return_number'] ) > 0 ]
     return lidar_canopy_df
 
 #
 
 def lasDFclip(lidar_df,xMin,xMax,yMin,yMax):
-    '''
-    
-    Parameters
-    ----------
-    lidar_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing coordinates and attributes of a lidar point cloud.
-    xMin : FLOAT
-        DESCRIPTION. Smallest cartesian X coordinate in the state plane system.
-    xMax : FLOAT
-        DESCRIPTION. Largest cartesian X coordinate in the state plane system.
-    yMin : FLOAT
-        DESCRIPTION. Smallest cartesian Y coordinate in the state plane system.
-    yMax : FLOAT
-        DESCRIPTION. Largest cartesian Y coordinate in the state plane system.
-
-    Returns
-    -------
-    lidar_canopy_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing coordinates and attributes of a lidar point cloud, trimmed to bounds.
-    
-    '''
     lidar_clip_df = lidar_df[ lidar_df['X'] >= xMin ]
     lidar_clip_df = lidar_clip_df[ lidar_clip_df['X'] <= xMax ]
     lidar_clip_df = lidar_clip_df[ lidar_clip_df['Y'] >= yMin ]
@@ -105,27 +56,6 @@ def lasDFclip(lidar_df,xMin,xMax,yMin,yMax):
 #
 
 def treeDFclip(tree_df,xMin,xMax,yMin,yMax):
-    '''
-    
-    Parameters
-    ----------
-    tree_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing NYC street tree census.
-    xMin : FLOAT
-        DESCRIPTION. Smallest cartesian X coordinate in the state plane system.
-    xMax : FLOAT
-        DESCRIPTION. Largest cartesian X coordinate in the state plane system.
-    yMin : FLOAT
-        DESCRIPTION. Smallest cartesian Y coordinate in the state plane system.
-    yMax : FLOAT
-        DESCRIPTION. Largest cartesian Y coordinate in the state plane system.
-
-    Returns
-    -------
-    tree_clip_df : Pandas Dataframe
-        DESCRIPTION. Dataframe containing subset of the NYC street tree census, trimmed to bounds.
-    
-    '''
     tree_clip_df = tree_df[ tree_df['x_sp'] >= xMin ]
     tree_clip_df = tree_clip_df[ tree_clip_df['x_sp'] <= xMax ]
     tree_clip_df = tree_clip_df[ tree_clip_df['y_sp'] >= yMin ]
@@ -136,19 +66,6 @@ def treeDFclip(tree_df,xMin,xMax,yMin,yMax):
 #
 
 def readGeoJSON(filepath):
-    '''
-    
-    Parameters
-    ----------
-    filepath : STRING
-        DESCRIPTION. String representing the file path of a GeoJSON file.
-
-    Returns
-    -------
-    features : JSON object / Dictionary
-        DESCRIPTION. GeoJSON objects with coordinates and attributes.
-    
-    '''
     with open(filepath) as f:
         features = json.load(f)["features"]                
     return features
@@ -156,21 +73,8 @@ def readGeoJSON(filepath):
 #
 
 def footprintPointsFromGeoJSON(feature):   
-    '''
-    
-    Parameters
-    ----------
-    feature : JSON object / Dictionary
-        DESCRIPTION. Portion of a GeoJSON objects with coordinates and attributes accessed through iteration.
-
-    Returns
-    -------
-    features : List
-        DESCRIPTION. A list of X,Y,Z coordinates for the roof of a building derived from a GeoJSON file.
-    
-    '''
     points = []
-    height = feature["properties"]["heightroof"] 
+    height = feature["properties"]["heightroof"] ################## verify this is the correct attribute name
     for polygonPart in feature["geometry"]["coordinates"]:
         for polygonSubPart in polygonPart:
             for coordinates in polygonSubPart:
@@ -181,20 +85,6 @@ def footprintPointsFromGeoJSON(feature):
 #
 
 def convertCoords(x,y):
-    '''
-    Parameters
-    ----------
-    x : FLOAT
-        DESCRIPTION. cartesian x coordinate in state plane coordinate system for NY, long island (EPSG 2263) 
-    y : FLOAT
-        DESCRIPTION. cartesian y coordinate in state plane coordinate system for NY, long island (EPSG 2263) 
-    Returns
-    -------
-    lat : FLOAT
-        DESCRIPTION. latitude in WGS 1984 (EPSG 4326) 
-    lon : FLOAT
-        DESCRIPTION. longitude in WGS 1984 (EPSG 4326)
-    '''
     transformer = Transformer.from_crs("epsg:2263", "epsg:4326")
     lat, lon = transformer.transform(x, y)
     return lat, lon
@@ -202,21 +92,7 @@ def convertCoords(x,y):
 #
 
 def convertLatLon(lat,lon):
-    '''
-    Parameters
-    ----------
-    lat : FLOAT
-        DESCRIPTION. latitude in WGS 1984 (EPSG 4326) 
-    lon : FLOAT
-        DESCRIPTION. longitude in WGS 1984 (EPSG 4326)
-    
-    Returns
-    -------
-    x : FLOAT
-        DESCRIPTION. cartesian x coordinate in state plane coordinate system for NY, long island (EPSG 2263) 
-    y : FLOAT
-        DESCRIPTION. cartesian y coordinate in state plane coordinate system for NY, long island (EPSG 2263) 
-    '''
+    #translate from geojson CRS (NAD 1983) to .las CRS (UTM Zone 18N (meters))
     transformer = Transformer.from_crs( "epsg:4326", "epsg:2263" ) 
     x, y = transformer.transform(lat, lon)
     return x, y
@@ -224,25 +100,6 @@ def convertLatLon(lat,lon):
 #
 
 def projectToGround(point,az,amp):
-    '''
-    Parameters
-    ----------
-    point : LIST
-        DESCRIPTION. List containing X, Y, Z coordinates of a point
-    az : FLOAT
-        DESCRIPTION. azimuth angle of the sun
-    amp : FLOAT
-        DESCRIPTION. amplitude (altitude, zenith) angle of the sun
-    
-    Returns
-    -------
-    pointGroundX : FLOAT
-        DESCRIPTION. X coordinate of the shadow cast by a point 
-    pointGroundY : FLOAT
-        DESCRIPTION. Y coordinate of the shadow cast by a point 
-    pointGroundZ : FLOAT
-        DESCRIPTION. Z coordinate of the shadow cast by a point 
-    '''
     if type(point[2]) is float:
         sinAz = math.sin( math.radians( az + 180.0 ) )
         cosAz = math.cos( math.radians( az + 180.0 ) )
@@ -251,29 +108,12 @@ def projectToGround(point,az,amp):
         pointGroundY = point[1] + ( ( point[2] / tanAmp ) *cosAz )
         pointGroundZ =  point[2] * 0
         return pointGroundX,pointGroundY,pointGroundZ
-    # handle missing height value for building
     else: 
         return point[0],point[1],1.0
 
 #
 
 def projectToGroundX(point,az,amp):
-    '''
-    Parameters
-    ----------
-    point : LIST
-        DESCRIPTION. List containing X, Y, Z coordinates of a point
-    az : FLOAT
-        DESCRIPTION. azimuth angle of the sun
-    amp : FLOAT
-        DESCRIPTION. amplitude (altitude, zenith) angle of the sun
-    
-    Returns
-    -------
-    pointGroundX : FLOAT
-        DESCRIPTION. X coordinate of the shadow cast by a point 
-        Tailored version of the above script so that it can set a single column value in a pandas dataframe without errors.
-    '''
     sinAz = math.sin( math.radians( az + 180.0 ) )
     cosAz = math.cos( math.radians( az + 180.0 ) )
     tanAmp = math.tan( math.radians(amp) )
@@ -283,23 +123,7 @@ def projectToGroundX(point,az,amp):
 
 #
 
-def projectToGroundY(point,az,amp):  
-    '''
-    Parameters
-    ----------
-    point : LIST
-        DESCRIPTION. List containing X, Y, Z coordinates of a point
-    az : FLOAT
-        DESCRIPTION. azimuth angle of the sun
-    amp : FLOAT
-        DESCRIPTION. amplitude (altitude, zenith) angle of the sun
-    
-    Returns
-    -------
-    pointGroundX : FLOAT
-        DESCRIPTION. Y coordinate of the shadow cast by a point 
-        Tailored version of the above script so that it can set a single column value in a pandas dataframe without errors.
-    '''
+def projectToGroundY(point,az,amp):   
     sinAz = math.sin( math.radians( az + 180.0 ) )
     cosAz = math.cos( math.radians( az + 180.0 ) )
     tanAmp = math.tan( math.radians(amp) )
@@ -309,44 +133,28 @@ def projectToGroundY(point,az,amp):
 
 #
 
-def pointsForHull(points,az,amp):
-    '''
-    Parameters
-    ----------
-    point : LIST
-        DESCRIPTION. List containing X, Y, Z coordinates of a point
-    az : FLOAT
-        DESCRIPTION. azimuth angle of the sun
-    amp : FLOAT
-        DESCRIPTION. amplitude (altitude, zenith) angle of the sun
-    
-    Returns
-    -------
-    pointGroundX : LIST
-        DESCRIPTION. A list of points for a building including the vertices of a building footprint on the ground, and the shadow cast by its roof.
-    '''
+def pointsForHull(points,az,amp,groundElv):
     groundPointList = []
     for point in points:
         #point[0],point[1] = convertLatLon(point[1],point[0])
-        groundPointList.append([point[0],point[1]])
+        
+        pointFootprint = [point[0],point[1],groundElv]
+        
+        groundPoint = projectToGround(pointFootprint,az,amp)
+        
+        groundPointList.append([groundPoint[0],groundPoint[1]])
+        
+        point[2] = point[2] + groundElv
+        
         groundPoint = projectToGround(point,az,amp)
-        groundPointList.append([groundPoint[0],groundPoint[1]])    
+        
+        groundPointList.append([groundPoint[0],groundPoint[1]])  
+        
     return groundPointList
 
 #
 
 def pointsForBufferedHull(points):
-    '''
-    Parameters
-    ----------
-    points : LIST
-        DESCRIPTION. List containing sublists of X,Y,Z coordinates from a GeoJSON
-    
-    Returns
-    -------
-    groundPointList : LIST
-        DESCRIPTION. List containing sublists of X,Y coordinates from a GeoJSON
-    '''
     groundPointList = []
     for point in points:
         #print(point)
@@ -358,38 +166,13 @@ def pointsForBufferedHull(points):
 #
 
 def convexHull2D(points):
-    '''
-    Parameters
-    ----------
-    points : LIST
-        DESCRIPTION. List containing sublists of X,Y coordinates
-    
-    Returns
-    -------
-    groundPointList : Hull object
-        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
-    '''
     points = np.array(points)
     hull = ConvexHull(points)
     return hull
 
 #
 
-def inBuilding(points, hull):   
-    '''
-    Parameters
-    ----------
-    points : Pandas Dataframe
-        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
-    groundPointList : Hull object
-        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
-    
-    Returns
-    -------
-    points : Pandas Dataframe
-        DESCRIPTION. Points of a point cloud projected on to the ground plane inside a hull. 
-        Used for checking if a point is likely to be a facade feature, for example a fire escape, so it can be dropped from the dataframe. 
-    '''
+def inBuilding(points, hull):      
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -403,22 +186,6 @@ def inBuilding(points, hull):
 #
 
 def inShadow(points, hull):    
-    '''
-    Parameters
-    ----------
-    points : Pandas Dataframe
-        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
-    groundPointList : Hull object
-        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
-    
-    Returns
-    -------
-    points : Pandas Dataframe
-        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
-        Adds flag for falling inside or outside the hull of a building, representing if a point is being shaded by a building. 
-        Supercedes all other conditions/flags.
-        The X,Y  point must fall inside the hull of a building's footprint + shadow, both "in the air" and projected onto the ground. 
-    '''
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -433,21 +200,6 @@ def inShadow(points, hull):
 #
 
 def inFacade(points, hull):
-    '''
-    Parameters
-    ----------
-    points : Pandas Dataframe
-        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
-    groundPointList : Hull object
-        DESCRIPTION. Scipy object representing the convex hull containing points fed to it, for example the shadow (including footprint) of a building.
-    
-    Returns
-    -------
-    points : Pandas Dataframe
-        DESCRIPTION. Points of a point cloud projected on to the ground plane, representing which includes coordinates of shadow cast by 3D points. 
-        Adds flag for falling inside or outside the hull of a building, representing if a point is shading a facade. 
-        Defers to the "in shadow" condition/flag.
-    '''
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -461,42 +213,26 @@ def inFacade(points, hull):
 
 #
 
-def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
-    '''
-    
-    Parameters
-    ----------
-    features : LIST
-        DESCRIPTION. GeoJSON polygons.
-    xMin : FLOAT
-        DESCRIPTION. Smallest cartesian X coordinate in the state plane system.
-    xMax : FLOAT
-        DESCRIPTION. Largest cartesian X coordinate in the state plane system.
-    yMin : FLOAT
-        DESCRIPTION. Smallest cartesian Y coordinate in the state plane system.
-    yMax : FLOAT
-        DESCRIPTION. Largest cartesian Y coordinate in the state plane system.
-    yMax : STRING
-        DESCRIPTION. Flag to trigger converting to state plane if provided coordinates are lat/lon. 'latLon' triggers reprojection.
+def findCentroid(buildingPoints):
+    xs = []
+    ys = []
+    for buildingPoint in buildingPoints:
+        xs.append(buildingPoint[0])
+        ys.append(buildingPoint[1])
+    xCenter = sum(xs)/len(xs)
+    yCenter = sum(ys)/len(ys)
+    return xCenter, yCenter
 
-    Returns
-    -------
-    features2 : LIST
-        DESCRIPTION. Polygon features whose centroids fell inside the bounding box.
+#
+
+def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
     
-    '''
     features2 = []
     
     for feature in features[:]:
         buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
-        xs = []
-        ys = []
-        for buildingPoint in buildingPoints:
-            xs.append(buildingPoint[0])
-            ys.append(buildingPoint[1])
-        # average to find centroid of polygon
-        xCenter = sum(xs)/len(xs)
-        yCenter = sum(ys)/len(ys)
+        
+        xCenter, yCenter = findCentroid(buildingPoints)
         
         if latLon == 'latLon':
             xCenter,yCenter = convertLatLon(yCenter,xCenter)
@@ -513,24 +249,9 @@ def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
 
 #
 
-def removeBuildingsFromLas(buildingsBufferedPath,lasdf):
-    '''
-    Parameters
-    ----------
-    buildingsBufferedPath : STRING
-        DESCRIPTION. File path to a GeoJSON containing buffered building footprints.
-    lasdf : Pandas Dataframe
-        DESCRIPTION. Dataframe containing las point cloud data.
-    
-    Returns
-    -------
-    lasBuildings : Pandas Dataframe
-        DESCRIPTION. Las point cloud dataframe that represent building features.
-    lasdf : Pandas Dataframe
-        DESCRIPTION. Dataframe containing las point cloud data with building features excluded.
-    '''
+def removeBuildingsFromLas(buildingsBufferedPaath,lasdf):
     #buffered buildings currently use state plane coordinates for their vertices 
-    featuresBuffered = readGeoJSON(buildingsBufferedPath)
+    featuresBuffered = readGeoJSON(buildingsBufferedPaath)
 
     for feature in featuresBuffered:
         buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
@@ -546,50 +267,36 @@ def removeBuildingsFromLas(buildingsBufferedPath,lasdf):
 
 #
 
-def lasPreprocess(lasTileNumber):
-    '''
-    Parameters
-    ----------
-    buildingsBufferedPath : INT
-        DESCRIPTION. Number identifier of a lidar tile.
-    
-    Returns
-    -------
-    lasBuildings : Pandas Dataframe
-        DESCRIPTION. Las point cloud dataframe that represent building features.
-    lasdf : Pandas Dataframe
-        DESCRIPTION. Dataframe containing las point cloud data with building features excluded.
-    '''
-    lasdf = processLas('las/{}.las'.format(lasTileNumber))
-    lasdf = lasdf.dropna()
-    groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
-    lasdf = lasDFcanopy(lasdf)
-    lasdf['Z'] = lasdf['Z'] - groundElevation
-    lasdf = lasdf[ lasdf['Z'] < 1000 ]
-    lasdf['temp'] = 0
-    lasdf['inBuilding'] = 0
-    # requires a geojson file of building footprints that have already been buffered, and selected down to the buildings that fall inside the tile. 
-    lasBuildings, lasdf =  removeBuildingsFromLas('buildings/buildingsTile{}buffered.geojson'.format(lasTileNumber),lasdf)
-    return lasBuildings, lasdf
+def groundElevation(groundlasdf,X,Y):
+    subsetdf = groundlasdf[groundlasdf['X'] <= X + 100 ]
+    subsetdf = subsetdf[subsetdf['X'] >= X - 100 ]
+    subsetdf = subsetdf[subsetdf['Y'] <= Y + 100 ]
+    subsetdf = subsetdf[subsetdf['Y'] >= Y - 100 ]
+    groundHeight = subsetdf['Z'].mean()
+    return groundHeight
 
 #
 
-def lasProcess(iterator):
-    '''
-    Parameters
-    ----------
-    buildingsBufferedPath : LIST
-        DESCRIPTION. A set of parameters in the sequence:
-        [pointer to las dataframe, number for las tile, sun azimuth, sun amplitude, string representing datetime].
+def lasPreprocess(lasTileNumber):
+    lasdf = processLas('las/{}.las'.format(lasTileNumber))
+    lasdf = lasdf.dropna()
+
+    #groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
+
+    lasdf = lasDFcanopy(lasdf)
+
+    #lasdf['Z'] = lasdf['Z'] - groundElevation
+
+    lasdf = lasdf[ lasdf['Z'] < 1000 ]
+
+    lasdf['temp'] = 0
+    lasdf['inBuilding'] = 0
+        
+    lasBuildings, lasdf =  removeBuildingsFromLas('buildings/buildingsTile{}buffered.geojson'.format(lasTileNumber),lasdf)
     
-    Returns
-    -------
-    lasBuildings : Pandas Dataframe
-        DESCRIPTION. Las point cloud dataframe that represent building features.
-    lasdf : Pandas Dataframe
-        DESCRIPTION. Dataframe containing las point cloud data with building features excluded.
-    '''
-    #wrapper function for multiprocessing
+    return lasBuildings, lasdf
+
+def lasProcess(iterator):
     #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
     lasdf = iterator[0]
     lasTileNumber = iterator[1]
@@ -602,6 +309,8 @@ def lasProcess(iterator):
 
     lasdf['temp'] = 0
     lasdf['inShade'] = 0
+    
+    groundlasdf = lasdf[lasdf['class']==2]
 
     features = readGeoJSON('buildings/buildingsTile{}.geojson'.format(lasTileNumber))
 
@@ -610,7 +319,12 @@ def lasProcess(iterator):
     #check in shadow
     for feature in features:
         buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
-        buildingPointsGround = pointsForHull(buildingPoints,az,amp)
+        
+        xCenter, yCenter = findCentroid(buildingPoints)
+        
+        groundHeight = groundElevation(groundlasdf,xCenter, yCenter)
+        
+        buildingPointsGround = pointsForHull(buildingPoints,az,amp,groundHeight)
         buildingHull = convexHull2D(buildingPointsGround)
         hulls.append(buildingHull)
         lasdf = inShadow(lasdf,buildingHull)
@@ -642,22 +356,24 @@ def lasProcess(iterator):
 
 
 startTime = str(datetime.datetime.now())
-
+print("starting at ",startTime)
 
 #
 
 
 lasdf25252buildingPoints,lasdf25252 = lasPreprocess('25252')
+print('one complete')
 lasdf32187buildingPoints,lasdf32187 = lasPreprocess('32187')
+print('one complete')
 lasdf987180buildingPoints,lasdf987180 = lasPreprocess('987180')
+print('one complete')
 
 print('Preprocessing done')
 
 #
 
-# used to find sun angles, this could probably be done programatically: https://gml.noaa.gov/grad/solcalc/azel.html
+# https://gml.noaa.gov/grad/solcalc/azel.html
 
-# these iterator combos could also probably be generated programatically...
 iterators = [
     
     [lasdf25252,'25252',90,38,'2022_06_21_0800'], #Summer Solstice: '2022_06_21_0800'
