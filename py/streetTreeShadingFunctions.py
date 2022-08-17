@@ -21,6 +21,7 @@ import matplotlib.pyplot as plt
 import matplotlib.path as mpltPath
 import datetime
 from multiprocessing import Pool
+import itertools
 
 #
 
@@ -74,11 +75,19 @@ def readGeoJSON(filepath):
 
 def footprintPointsFromGeoJSON(feature):   
     points = []
-    height = feature["properties"]["heightroof"] ################## verify this is the correct attribute name
+    height = feature["properties"]["heightroof"] 
+    
+    if type(height) == float:
+        height = height
+    else:
+        height = 0
+    
     for polygonPart in feature["geometry"]["coordinates"]:
         for polygonSubPart in polygonPart:
             for coordinates in polygonSubPart:
                 point = [coordinates[0],coordinates[1],height]
+                points.append(point)
+                point = [coordinates[0],coordinates[1],0]
                 points.append(point)                  
     return points, height
 
@@ -133,18 +142,10 @@ def projectToGroundY(point,az,amp):
 
 #
 
-def pointsForHull(points,az,amp,groundElv):
+def pointsForHull(points,az,amp):
     groundPointList = []
     for point in points:
         #point[0],point[1] = convertLatLon(point[1],point[0])
-        
-        pointFootprint = [point[0],point[1],groundElv]
-        
-        groundPoint = projectToGround(pointFootprint,az,amp)
-        
-        groundPointList.append([groundPoint[0],groundPoint[1]])
-        
-        point[2] = point[2] + groundElv
         
         groundPoint = projectToGround(point,az,amp)
         
@@ -186,6 +187,7 @@ def inBuilding(points, hull):
 #
 
 def inShadow(points, hull):    
+    #points['Z'] = points['Z'] - ground
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -195,11 +197,13 @@ def inShadow(points, hull):
     pointsInGround = points[['groundX','groundY']]
     points['temp'] = path.contains_points(pointsIn) * path.contains_points(pointsInGround)
     points['inShade'] = np.where( (points['inShade'] == 1) | (points['temp'] == 1),1,0 )
+    #points['Z'] = points['Z'] + ground
     return points
 
 #
 
 def inFacade(points, hull):
+    #points['Z'] = points['Z'] - ground
     vertexList = (hull.vertices).tolist()
     polygonPoints = []
     for index in vertexList:
@@ -208,6 +212,7 @@ def inFacade(points, hull):
     pointsIn = points[['groundX','groundY']]
     points['temp'] = path.contains_points(pointsIn)
     points['inFacade'] = np.where( (points['inFacade'] == 1) | (points['temp'] == 1),1,0 )
+    #points['Z'] = points['Z'] + ground
     return points        
 
 
@@ -230,7 +235,7 @@ def trimGeoJSON(features,xMin,xMax,yMin,yMax,latLon):
     features2 = []
     
     for feature in features[:]:
-        buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+        buildingPoints,height = footprintPointsFromGeoJSON(feature)
         
         xCenter, yCenter = findCentroid(buildingPoints)
         
@@ -254,7 +259,7 @@ def removeBuildingsFromLas(buildingsBufferedPaath,lasdf):
     featuresBuffered = readGeoJSON(buildingsBufferedPaath)
 
     for feature in featuresBuffered:
-        buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+        buildingPoints,height = footprintPointsFromGeoJSON(feature)
         buildingPoints = pointsForBufferedHull(buildingPoints)
         buildingHull = convexHull2D(buildingPoints)
         lasdf = inBuilding(lasdf,buildingHull)
@@ -268,12 +273,17 @@ def removeBuildingsFromLas(buildingsBufferedPaath,lasdf):
 #
 
 def groundElevation(groundlasdf,X,Y):
-    subsetdf = groundlasdf[groundlasdf['X'] <= X + 100 ]
-    subsetdf = subsetdf[subsetdf['X'] >= X - 100 ]
-    subsetdf = subsetdf[subsetdf['Y'] <= Y + 100 ]
-    subsetdf = subsetdf[subsetdf['Y'] >= Y - 100 ]
-    groundHeight = subsetdf['Z'].mean()
-    return groundHeight
+    tilemean = groundlasdf['Z'].mean()
+    subsetdf = groundlasdf[groundlasdf['X'] <= X + 250 ]
+    subsetdf = subsetdf[subsetdf['X'] >= X - 250 ]
+    subsetdf = subsetdf[subsetdf['Y'] <= Y + 250 ]
+    subsetdf = subsetdf[subsetdf['Y'] >= Y - 250 ]
+    groundHeight = subsetdf['Z'].median()
+    if groundHeight > 0:
+        return groundHeight
+    else:
+        return tilemean
+    
 
 #
 
@@ -281,11 +291,11 @@ def lasPreprocess(lasTileNumber):
     lasdf = processLas('las/{}.las'.format(lasTileNumber))
     lasdf = lasdf.dropna()
 
-    #groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
+    groundElevation = lasdf[lasdf['class']==2]['Z'].mean()
 
     lasdf = lasDFcanopy(lasdf)
 
-    #lasdf['Z'] = lasdf['Z'] - groundElevation
+    lasdf['Z'] = lasdf['Z'] - groundElevation
 
     lasdf = lasdf[ lasdf['Z'] < 1000 ]
 
@@ -295,6 +305,8 @@ def lasPreprocess(lasTileNumber):
     lasBuildings, lasdf =  removeBuildingsFromLas('buildings/buildingsTile{}buffered.geojson'.format(lasTileNumber),lasdf)
     
     return lasBuildings, lasdf
+
+#
 
 def lasProcess(iterator):
     #az here is geometric degrees (counterclockwise, north = 90) not compass heading degrees (clockwise, north = 0)
@@ -318,16 +330,16 @@ def lasProcess(iterator):
 
     #check in shadow
     for feature in features:
-        buildingPoints,buildingHeight = footprintPointsFromGeoJSON(feature)
+        buildingPoints,height = footprintPointsFromGeoJSON(feature)
         
         xCenter, yCenter = findCentroid(buildingPoints)
-        
         groundHeight = groundElevation(groundlasdf,xCenter, yCenter)
         
-        buildingPointsGround = pointsForHull(buildingPoints,az,amp,groundHeight)
+        buildingPointsGround = pointsForHull(buildingPoints,az,amp)
         buildingHull = convexHull2D(buildingPointsGround)
         hulls.append(buildingHull)
         lasdf = inShadow(lasdf,buildingHull)
+    print(lasdf)
 
     lasInShade = lasdf[lasdf['inShade'] == 1]
     lasNotShade = lasdf[lasdf['inShade'] == 0]
@@ -337,14 +349,15 @@ def lasProcess(iterator):
 
     #check shading facade
     for buildingHull in hulls:
+        
         lasNotShade = inFacade(lasNotShade,buildingHull)
 
     lasShadeFacade = lasNotShade[lasNotShade['inFacade'] == 1]
     lasShadeRoad = lasNotShade[lasNotShade['inFacade'] == 0]
     
-    lasShadeRoad = lasShadeRoad[['X','Y','Z','intens','groundX','groundY']]
-    lasInShade = lasInShade[['X','Y','Z','intens','groundX','groundY']]
-    lasShadeFacade = lasShadeFacade[['X','Y','Z','intens','groundX','groundY']]
+    lasShadeRoad = lasShadeRoad[['X','Y','Z','intens','class','groundX','groundY','return_number', 'number_of_returns']]
+    lasInShade = lasInShade[['X','Y','Z','intens','class','groundX','groundY','return_number', 'number_of_returns']]
+    lasShadeFacade = lasShadeFacade[['X','Y','Z','intens','class','groundX','groundY','return_number', 'number_of_returns']]
     
     lasShadeRoad.to_csv('shadeShadingShadedDataframes/{}_tile{}_shadingGround.csv'.format(dateTimeString,lasTileNumber))
     lasInShade.to_csv('shadeShadingShadedDataframes/{}_tile{}_inShade.csv'.format(dateTimeString,lasTileNumber))
@@ -536,6 +549,10 @@ iterators = [
 if __name__ == '__main__':
     with Pool() as p:
         p.map(lasProcess, iterators)
+
+
+# for iterator in iterators:
+#     lasProcess(iterator)
 
 
 
