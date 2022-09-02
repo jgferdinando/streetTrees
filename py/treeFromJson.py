@@ -51,61 +51,81 @@ clusters = treeJson['MR_TreeClusterDict']
 print('There are {} tree clusters in the JSON file'.format(len(clusters)))
 print('')
 
+jsonfilename2 = '25192_2015_ConvexHullMasked_Only_SRTrue_LidarSRWorkflow.json'
+with open(jsonfilename2) as f:
+    treeJson2 = json.load(f)
+clusters2 = treeJson2['MR_TreeClusterDict']
+
 i = 0
 shadowAreaList = []
 radBlockedList = []
 radList = []
 
-for cluster in clusters[0:1]:
+for cluster in clusters:
+    #print(cluster)
+    clusterID = cluster['ClusterID']
     clusterPoints = cluster['ConvexHullDict']['ClusterPoints']
+    
+    #find the matching cluster from the single return file
+    for cluster2 in clusters2:
+        clusterID2 = cluster2['SRpointsInfo']['SRpointsTreeCluster']
+        if clusterID == clusterID2:
+            clusterPoints2 = cluster2['SRpointsInfo']['SpecificClusterSRpoints']
+            clusterPoints3 = clusterPoints + clusterPoints2
+            with open('treeClusters/{}.json'.format(clusterID), 'w', encoding='utf-8') as f:
+                json.dump(clusterPoints3, f, ensure_ascii=False)
+        else:
+            continue
+    
+    
 
-    latitude = cluster['PredictedTreeLocation']['Latitude']
-    longitude = cluster['PredictedTreeLocation']['Longitude']
+#     latitude = cluster['PredictedTreeLocation']['Latitude']
+#     longitude = cluster['PredictedTreeLocation']['Longitude']
     
-    year = 2022
-    month = 9
-    day = 1
+#     year = 2022
+#     month = 12
+#     day = 21
+
+#     for hour in range(9,16):
+#         for minute in range(0,60,1):
     
-    for hour in range(7,19):
-        for minute in range(0,60,5):
-    
-            date = datetime.datetime(year, month, day, hour+4, minute, 0, 0, tzinfo=datetime.timezone.utc)
-            az = get_azimuth(latitude, longitude, date)
-            amp = get_altitude(latitude, longitude, date)
-            rad = radiation.get_radiation_direct(date, amp)
-            radList.append(rad)
-            print('Solar details: azimuth {}, amplitude {}, clear sky radiation {}'.format(az,amp,rad))
+#             date = datetime.datetime(year, month, day, hour+4, minute, 0, 0, tzinfo=datetime.timezone.utc)
+#             az = get_azimuth(latitude, longitude, date)
+#             amp = get_altitude(latitude, longitude, date)
+#             rad = radiation.get_radiation_direct(date, amp)
+#             radList.append(rad)
+#             #print('Solar details: azimuth {}, amplitude {}, clear sky radiation {}'.format(az,amp,rad))
         
-            groundPoints = pointsForHull(clusterPoints,az,amp)
-            #print(groundPoints)
-            hull = convexHull2D(groundPoints)
-            shadowAreaList.append(hull.volume)
-            print('Shadow area of tree cluster {} at {}:{} on {}-{}-{}: {}'.format(i,hour,minute,year,month,day,hull.volume))
-            radBlocked = int(hull.volume * rad)
-            radBlockedList.append(radBlocked)
-            print('This tree provided shade from {} watts of solar energy at this time.'.format(radBlocked))
-            print('')
+#             groundPoints = pointsForHull(clusterPoints,az,amp)
+#             #print(groundPoints)
+#             hull = convexHull2D(groundPoints)
+#             shadowAreaList.append(hull.volume)
+#             #print('Shadow area of tree cluster {} at {}:{} on {}-{}-{}: {}'.format(i,hour,minute,year,month,day,hull.volume))
+#             radBlocked = int(hull.volume * rad)
+#             radBlockedList.append(radBlocked)
+#             #print('This tree provided shade from {} watts of solar energy at this time.'.format(radBlocked))
+#             #print('')
+        
+#     i += 1
     
-    i += 1
-    
-#    
+# #    
 
-fig, ax1 = plt.subplots()
+# fig, ax1 = plt.subplots()
 
-color = 'tab:red'
-ax1.set_xlabel('time (5 min)')
-ax1.set_ylabel('clear sky radiation (watts per sq meter)', color=color)
-ax1.plot(radList, color=color)
-ax1.tick_params(axis='y', labelcolor=color)
+# color = 'tab:red'
+# ax1.set_xlabel('time (5 min)')
+# ax1.set_ylabel('clear sky radiation (watts per sq meter)', color=color)
+# #ax1.plot(radList, color=color)
+# #ax1.tick_params(axis='y', labelcolor=color)
 
-ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
+# ax2 = ax1.twinx()  # instantiate a second axes that shares the same x-axis
 
-color = 'tab:blue'
-ax2.set_ylabel('radiation blocked (watts)', color=color)  # we already handled the x-label with ax1
-ax2.plot(radBlockedList, color=color)
-ax2.tick_params(axis='y', labelcolor=color)
+# color = 'tab:blue'
+# ax2.set_ylabel('shadow area', color=color)  # we already handled the x-label with ax1
+# ax2.plot(shadowAreaList, color=color)
+# ax2.tick_params(axis='y', labelcolor=color)
 
-fig.tight_layout()  # otherwise the right y-label is slightly clipped
-plt.show()
+# fig.tight_layout()  # otherwise the right y-label is slightly clipped
+# plt.show()
 
 
